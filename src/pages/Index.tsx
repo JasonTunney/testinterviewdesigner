@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { InterviewPlan, InterviewStage } from "@/types/interview";
 import JobDescriptionUpload from "@/components/JobDescriptionUpload";
 import InterviewPipeline from "@/components/InterviewPipeline";
@@ -6,11 +7,12 @@ import { generatePDF } from "@/utils/pdfGenerator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Download, RotateCcw } from "lucide-react";
+import { ArrowLeft, Download, RotateCcw, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [plan, setPlan] = useState<InterviewPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [publisherName, setPublisherName] = useState("");
@@ -63,8 +65,17 @@ const Index = () => {
           <span className="font-display font-bold text-xl text-foreground">SO</span>
           <span className="text-muted-foreground text-sm">Interview Designer</span>
         </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/settings")}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Settings className="w-4 h-4 mr-1" /> Settings
+          </Button>
         {plan && (
-          <div className="flex items-center gap-2">
+          <>
             <Button
               variant="ghost"
               size="sm"
@@ -81,8 +92,9 @@ const Index = () => {
             >
               <Download className="w-4 h-4 mr-1" /> Save PDF
             </Button>
-          </div>
+          </>
         )}
+        </div>
       </nav>
 
       <main className="px-4 py-10 md:py-16">
