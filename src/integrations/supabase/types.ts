@@ -14,7 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      company_config: {
+        Row: {
+          additional_context: string | null
+          company_description: string | null
+          company_name: string | null
+          company_values: string | null
+          competency_framework: string | null
+          created_at: string
+          hiring_philosophy: string | null
+          id: string
+          industry: string | null
+          max_interview_duration_minutes: number | null
+          max_questions_per_stage: number | null
+          max_stages: number | null
+          min_questions_per_stage: number | null
+          min_stages: number | null
+          org_chart_url: string | null
+          org_structure: string | null
+          settings_password: string
+          updated_at: string
+        }
+        Insert: {
+          additional_context?: string | null
+          company_description?: string | null
+          company_name?: string | null
+          company_values?: string | null
+          competency_framework?: string | null
+          created_at?: string
+          hiring_philosophy?: string | null
+          id?: string
+          industry?: string | null
+          max_interview_duration_minutes?: number | null
+          max_questions_per_stage?: number | null
+          max_stages?: number | null
+          min_questions_per_stage?: number | null
+          min_stages?: number | null
+          org_chart_url?: string | null
+          org_structure?: string | null
+          settings_password?: string
+          updated_at?: string
+        }
+        Update: {
+          additional_context?: string | null
+          company_description?: string | null
+          company_name?: string | null
+          company_values?: string | null
+          competency_framework?: string | null
+          created_at?: string
+          hiring_philosophy?: string | null
+          id?: string
+          industry?: string | null
+          max_interview_duration_minutes?: number | null
+          max_questions_per_stage?: number | null
+          max_stages?: number | null
+          min_questions_per_stage?: number | null
+          min_stages?: number | null
+          org_chart_url?: string | null
+          org_structure?: string | null
+          settings_password?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
