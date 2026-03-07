@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [plan, setPlan] = useState<InterviewPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [publisherName, setPublisherName] = useState("");
