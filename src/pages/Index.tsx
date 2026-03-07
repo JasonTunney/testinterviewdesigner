@@ -65,6 +65,15 @@ const Index = () => {
           <span className="font-display font-bold text-xl text-foreground">SO</span>
           <span className="text-muted-foreground text-sm">Interview Designer</span>
         </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/settings")}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Settings className="w-4 h-4 mr-1" /> Settings
+          </Button>
         {plan && (
           <div className="flex items-center gap-2">
             <Button
