@@ -75,7 +75,7 @@ const Index = () => {
             <Settings className="w-4 h-4 mr-1" /> Settings
           </Button>
         {plan && (
-          <div className="flex items-center gap-2">
+          <>
             <Button
               variant="ghost"
               size="sm"
@@ -92,8 +92,9 @@ const Index = () => {
             >
               <Download className="w-4 h-4 mr-1" /> Save PDF
             </Button>
-          </div>
+          </>
         )}
+        </div>
       </nav>
 
       <main className="px-4 py-10 md:py-16">
