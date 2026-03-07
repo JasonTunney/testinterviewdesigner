@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,13 +14,53 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Fetch company config from DB
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: config } = await supabase
+      .from("company_config")
+      .select("*")
+      .limit(1)
+      .single();
+
+    // Build context from config
+    let companyContext = "";
+    if (config) {
+      const parts: string[] = [];
+      if (config.company_name) parts.push(`Company: ${config.company_name}`);
+      if (config.industry) parts.push(`Industry: ${config.industry}`);
+      if (config.company_description) parts.push(`About: ${config.company_description}`);
+      if (config.company_values) parts.push(`Core Values: ${config.company_values}`);
+      if (config.hiring_philosophy) parts.push(`Hiring Philosophy: ${config.hiring_philosophy}`);
+      if (config.org_structure) parts.push(`Organisation Structure:\n${config.org_structure}`);
+      if (config.competency_framework) parts.push(`Competency Framework: ${config.competency_framework}`);
+      if (config.additional_context) parts.push(`Additional Context: ${config.additional_context}`);
+      
+      if (parts.length > 0) {
+        companyContext = `\n\nIMPORTANT COMPANY CONTEXT - Use this to tailor the interview process:\n${parts.join("\n\n")}`;
+      }
+    }
+
+    const stageConstraints = config
+      ? `Design between ${config.min_stages} and ${config.max_stages} stages. Include ${config.min_questions_per_stage}-${config.max_questions_per_stage} questions per stage. Total interview time across all stages should not exceed ${config.max_interview_duration_minutes} minutes.`
+      : "Design 3-5 stages with 2-4 questions per stage.";
+
     const systemPrompt = `You are an expert HR consultant and interview process designer. Given a job description, design a comprehensive, best-practice interview process.
+${companyContext}
+
+CONSTRAINTS:
+${stageConstraints}
+${config?.competency_framework ? `\nEnsure questions assess these competencies where relevant: ${config.competency_framework}` : ""}
+${config?.org_structure ? `\nWhen recommending panelists, refer to actual roles from the organisation structure provided above.` : ""}
 
 Return a JSON object with this exact structure (no markdown, no code fences, just valid JSON):
 {
   "jobTitle": "string",
   "department": "string", 
-  "summary": "Brief overview of the interview strategy and why these stages were chosen",
+  "summary": "Brief overview of the interview strategy and why these stages were chosen${config?.company_name ? `, tailored for ${config.company_name}` : ""}",
   "stages": [
     {
       "id": "stage-1",
@@ -47,7 +88,7 @@ Return a JSON object with this exact structure (no markdown, no code fences, jus
   ]
 }
 
-Design 3-5 stages typically including: Initial Screening, Technical/Skills Assessment, Behavioral Interview, Culture Fit/Team Interview, and Final/Leadership Interview. Include 2-4 questions per stage with full 1-5 scoring rubrics. Be specific to the role described.`;
+Be specific to the role described. Tailor panelist recommendations to the company's actual structure when available.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -85,7 +126,6 @@ Design 3-5 stages typically including: Initial Screening, Technical/Skills Asses
     
     if (!content) throw new Error("No content in AI response");
 
-    // Clean and parse JSON
     let jsonStr = content.trim();
     if (jsonStr.startsWith("```")) {
       jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
