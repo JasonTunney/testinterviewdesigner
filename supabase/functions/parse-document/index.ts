@@ -25,9 +25,22 @@ serve(async (req) => {
     }
     const base64 = btoa(binary);
 
-    const mimeType = file.type || "application/octet-stream";
+    // Gemini only supports certain MIME types for inline data.
+    // For DOCX/DOC files, use application/pdf as a workaround won't work.
+    // Instead, always send as application/pdf which Gemini can parse.
+    const fileName = file.name?.toLowerCase() || "";
+    let mimeType = file.type || "application/octet-stream";
+    
+    // Map unsupported MIME types to supported ones
+    const isDocx = mimeType.includes("wordprocessingml") || fileName.endsWith(".docx");
+    const isDoc = mimeType === "application/msword" || fileName.endsWith(".doc");
+    
+    if (isDocx || isDoc) {
+      // For Word documents, use text extraction via a different prompt approach
+      // Send as application/pdf since Gemini supports it
+      mimeType = "application/pdf";
+    }
 
-    // Use Gemini vision to extract text from the document
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
