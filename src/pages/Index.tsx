@@ -83,6 +83,14 @@ const Index = () => {
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => navigate("/history")}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <History className="w-4 h-4 mr-1" /> History
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => navigate("/settings")}
             className="text-muted-foreground hover:text-foreground"
           >
