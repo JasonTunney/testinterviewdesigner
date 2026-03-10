@@ -18,8 +18,11 @@ const Index = () => {
   const [publisherName, setPublisherName] = useState("");
   const [showPdfDialog, setShowPdfDialog] = useState(false);
 
+  const [lastJobDescription, setLastJobDescription] = useState("");
+
   const handleSubmit = useCallback(async (jobDescription: string) => {
     setIsLoading(true);
+    setLastJobDescription(jobDescription);
     try {
       const { data, error } = await supabase.functions.invoke("design-interview", {
         body: { jobDescription },
@@ -28,7 +31,18 @@ const Index = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setPlan(data as InterviewPlan);
+      const planData = data as InterviewPlan;
+      setPlan(planData);
+
+      // Save to database
+      await supabase.from("interview_plans").insert({
+        job_title: planData.jobTitle,
+        department: planData.department,
+        summary: planData.summary,
+        job_description: jobDescription,
+        plan_data: planData as any,
+      });
+
       toast.success("Interview process designed successfully!");
     } catch (err: any) {
       console.error(err);
