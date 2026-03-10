@@ -1,21 +1,56 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Upload, FileText, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface JobDescriptionUploadProps {
   onSubmit: (text: string) => void;
   isLoading: boolean;
 }
 
+const SUPPORTED_TEXT_TYPES = ["text/plain"];
+
 const JobDescriptionUpload = ({ onSubmit, isLoading }: JobDescriptionUploadProps) => {
   const [jobDescription, setJobDescription] = useState("");
   const [dragActive, setDragActive] = useState(false);
+  const [parsing, setParsing] = useState(false);
 
   const handleFileUpload = async (file: File) => {
-    const text = await file.text();
-    setJobDescription(text);
+    // Plain text files can be read directly
+    if (SUPPORTED_TEXT_TYPES.includes(file.type) || file.name.endsWith(".txt")) {
+      const text = await file.text();
+      setJobDescription(text);
+      return;
+    }
+
+    // For PDF, DOCX, and other binary formats, use the parse edge function
+    setParsing(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const { data, error } = await supabase.functions.invoke("parse-document", {
+        body: formData,
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.text) {
+        setJobDescription(data.text);
+        toast.success("Document parsed successfully!");
+      } else {
+        throw new Error("No text extracted from document");
+      }
+    } catch (err: any) {
+      console.error("File parsing error:", err);
+      toast.error(err.message || "Failed to parse document. Try pasting the text instead.");
+    } finally {
+      setParsing(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -24,6 +59,8 @@ const JobDescriptionUpload = ({ onSubmit, isLoading }: JobDescriptionUploadProps
     const file = e.dataTransfer.files[0];
     if (file) handleFileUpload(file);
   };
+
+  const isProcessing = isLoading || parsing;
 
   return (
     <motion.div
@@ -58,17 +95,26 @@ const JobDescriptionUpload = ({ onSubmit, isLoading }: JobDescriptionUploadProps
       >
         <div className="flex flex-col items-center gap-4 mb-6">
           <div className="p-4 rounded-full bg-secondary">
-            <Upload className="w-6 h-6 text-primary" />
+            {parsing ? (
+              <Loader2 className="w-6 h-6 text-primary animate-spin" />
+            ) : (
+              <Upload className="w-6 h-6 text-primary" />
+            )}
           </div>
           <div className="text-center">
-            <p className="text-foreground font-medium">Drop a job description file here</p>
-            <p className="text-muted-foreground text-sm">or paste the text below</p>
+            <p className="text-foreground font-medium">
+              {parsing ? "Parsing document..." : "Drop a job description file here"}
+            </p>
+            <p className="text-muted-foreground text-sm">
+              Supports .txt, .pdf, .doc, .docx — or paste the text below
+            </p>
           </div>
-          <label className="cursor-pointer">
+          <label className={`cursor-pointer ${parsing ? "pointer-events-none opacity-50" : ""}`}>
             <input
               type="file"
               className="hidden"
               accept=".txt,.pdf,.doc,.docx"
+              disabled={parsing}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) handleFileUpload(file);
@@ -85,6 +131,7 @@ const JobDescriptionUpload = ({ onSubmit, isLoading }: JobDescriptionUploadProps
           value={jobDescription}
           onChange={(e) => setJobDescription(e.target.value)}
           className="min-h-[200px] bg-background/50 border-border text-foreground placeholder:text-muted-foreground resize-none"
+          disabled={parsing}
         />
       </motion.div>
 
@@ -96,7 +143,7 @@ const JobDescriptionUpload = ({ onSubmit, isLoading }: JobDescriptionUploadProps
       >
         <Button
           size="lg"
-          disabled={!jobDescription.trim() || isLoading}
+          disabled={!jobDescription.trim() || isProcessing}
           onClick={() => onSubmit(jobDescription)}
           className="gradient-lime text-primary-foreground font-semibold text-lg px-8 py-6 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
         >

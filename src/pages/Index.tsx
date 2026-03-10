@@ -7,7 +7,7 @@ import { generatePDF } from "@/utils/pdfGenerator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Download, RotateCcw, Settings } from "lucide-react";
+import { ArrowLeft, Download, RotateCcw, Settings, History } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,8 +18,11 @@ const Index = () => {
   const [publisherName, setPublisherName] = useState("");
   const [showPdfDialog, setShowPdfDialog] = useState(false);
 
+  const [lastJobDescription, setLastJobDescription] = useState("");
+
   const handleSubmit = useCallback(async (jobDescription: string) => {
     setIsLoading(true);
+    setLastJobDescription(jobDescription);
     try {
       const { data, error } = await supabase.functions.invoke("design-interview", {
         body: { jobDescription },
@@ -28,7 +31,18 @@ const Index = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setPlan(data as InterviewPlan);
+      const planData = data as InterviewPlan;
+      setPlan(planData);
+
+      // Save to database
+      await supabase.from("interview_plans").insert({
+        job_title: planData.jobTitle,
+        department: planData.department,
+        summary: planData.summary,
+        job_description: jobDescription,
+        plan_data: planData as any,
+      });
+
       toast.success("Interview process designed successfully!");
     } catch (err: any) {
       console.error(err);
@@ -66,6 +80,14 @@ const Index = () => {
           <span className="text-muted-foreground text-sm">Interview Designer</span>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/history")}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <History className="w-4 h-4 mr-1" /> History
+          </Button>
           <Button
             variant="ghost"
             size="sm"
