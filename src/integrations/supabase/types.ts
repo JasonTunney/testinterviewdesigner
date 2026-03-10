@@ -77,6 +77,36 @@ export type Database = {
         }
         Relationships: []
       }
+      interview_plans: {
+        Row: {
+          created_at: string
+          department: string | null
+          id: string
+          job_description: string | null
+          job_title: string
+          plan_data: Json
+          summary: string | null
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          id?: string
+          job_description?: string | null
+          job_title: string
+          plan_data: Json
+          summary?: string | null
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          id?: string
+          job_description?: string | null
+          job_title?: string
+          plan_data?: Json
+          summary?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
