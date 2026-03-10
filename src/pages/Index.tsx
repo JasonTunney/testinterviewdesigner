@@ -7,7 +7,7 @@ import { generatePDF } from "@/utils/pdfGenerator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Download, RotateCcw, Settings } from "lucide-react";
+import { ArrowLeft, Download, RotateCcw, Settings, History } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
