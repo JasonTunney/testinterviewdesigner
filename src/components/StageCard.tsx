@@ -12,6 +12,8 @@ interface StageCardProps {
   colorClass: string;
   bgColorClass: string;
   onEdit: (stage: InterviewStage) => void;
+  onDelete?: () => void;
+  canDelete?: boolean;
 }
 
 const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit }: StageCardProps) => {
