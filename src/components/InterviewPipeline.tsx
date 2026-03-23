@@ -6,6 +6,7 @@ import { ArrowDown } from "lucide-react";
 interface InterviewPipelineProps {
   plan: InterviewPlan;
   onEditStage: (stageId: string, stage: InterviewStage) => void;
+  onDeleteStage: (stageId: string) => void;
 }
 
 const stageColors = [
