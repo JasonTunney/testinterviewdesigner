@@ -66,7 +66,8 @@ const InterviewPipeline = ({ plan, onEditStage, onDeleteStage, readOnly = false 
                 bgColorClass={stageBgColors[index % stageBgColors.length]}
                 onEdit={(updated) => onEditStage(stage.id, updated)}
                 onDelete={() => onDeleteStage(stage.id)}
-                canDelete={plan.stages.length > 1}
+                canDelete={!readOnly && plan.stages.length > 1}
+                readOnly={readOnly}
               />
             </motion.div>
             {index < plan.stages.length - 1 && (
