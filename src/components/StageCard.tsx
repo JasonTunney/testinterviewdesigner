@@ -62,7 +62,7 @@ const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, c
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {!editing && (
+          {!editing && !readOnly && (
             <div className="flex gap-1">
               <Button
                 variant="ghost"
