@@ -28,6 +28,8 @@ serve(async (req) => {
 
     // Build context from config
     let companyContext = "";
+    let orgChartBase64 = "";
+    let orgChartMime = "";
     if (config) {
       const parts: string[] = [];
       if (config.company_name) parts.push(`Company: ${config.company_name}`);
@@ -39,6 +41,28 @@ serve(async (req) => {
       if (config.competency_framework) parts.push(`Competency Framework: ${config.competency_framework}`);
       if (config.additional_context) parts.push(`Additional Context: ${config.additional_context}`);
       
+      // Download and encode org chart if available
+      if (config.org_chart_url) {
+        try {
+          console.log("Fetching org chart from:", config.org_chart_url);
+          const chartResp = await fetch(config.org_chart_url);
+          if (chartResp.ok) {
+            const chartBuffer = await chartResp.arrayBuffer();
+            const chartBytes = new Uint8Array(chartBuffer);
+            let binary = "";
+            const chunkSize = 8192;
+            for (let i = 0; i < chartBytes.length; i += chunkSize) {
+              binary += String.fromCharCode(...chartBytes.subarray(i, i + chunkSize));
+            }
+            orgChartBase64 = btoa(binary);
+            orgChartMime = chartResp.headers.get("content-type") || "image/png";
+            parts.push("An org chart image has been attached below — use it to identify real roles, teams, and reporting lines for panelist recommendations.");
+          }
+        } catch (e) {
+          console.error("Failed to fetch org chart:", e);
+        }
+      }
+
       if (parts.length > 0) {
         companyContext = `\n\nIMPORTANT COMPANY CONTEXT - Use this to tailor the interview process:\n${parts.join("\n\n")}`;
       }
