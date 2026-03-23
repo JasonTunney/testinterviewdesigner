@@ -85,6 +85,7 @@ export type Database = {
           job_description: string | null
           job_title: string
           plan_data: Json
+          status: string
           summary: string | null
         }
         Insert: {
@@ -94,6 +95,7 @@ export type Database = {
           job_description?: string | null
           job_title: string
           plan_data: Json
+          status?: string
           summary?: string | null
         }
         Update: {
@@ -103,6 +105,7 @@ export type Database = {
           job_description?: string | null
           job_title?: string
           plan_data?: Json
+          status?: string
           summary?: string | null
         }
         Relationships: []
