@@ -17,7 +17,7 @@ interface JobDescriptionUploadProps {
 
 const SUPPORTED_TEXT_TYPES = ["text/plain"];
 
-const JobDescriptionUpload = ({ onSubmit, isLoading }: JobDescriptionUploadProps) => {
+const JobDescriptionUpload = ({ onSubmit, isLoading, isInterimRole, onToggleInterim }: JobDescriptionUploadProps) => {
   const [jobDescription, setJobDescription] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [parsing, setParsing] = useState(false);
