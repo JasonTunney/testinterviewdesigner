@@ -22,12 +22,14 @@ const Index = () => {
 
   const [lastJobDescription, setLastJobDescription] = useState("");
 
+  const [isInterimRole, setIsInterimRole] = useState(false);
+
   const handleSubmit = useCallback(async (jobDescription: string) => {
     setIsLoading(true);
     setLastJobDescription(jobDescription);
     try {
       const { data, error } = await supabase.functions.invoke("design-interview", {
-        body: { jobDescription },
+        body: { jobDescription, isInterimRole },
       });
 
       if (error) throw error;
@@ -36,7 +38,6 @@ const Index = () => {
       const planData = data as InterviewPlan;
       setPlan(planData);
 
-      // Save to database
       await supabase.from("interview_plans").insert({
         job_title: planData.jobTitle,
         department: planData.department,
@@ -52,7 +53,7 @@ const Index = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isInterimRole]);
 
   const handleEditStage = useCallback((stageId: string, updatedStage: InterviewStage) => {
     if (!plan) return;
