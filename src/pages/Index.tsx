@@ -36,17 +36,19 @@ const Index = () => {
       if (data?.error) throw new Error(data.error);
 
       const planData = data as InterviewPlan;
-      setPlan(planData);
 
-      await supabase.from("interview_plans").insert({
+      const { data: inserted, error: insertError } = await supabase.from("interview_plans").insert({
         job_title: planData.jobTitle,
         department: planData.department,
         summary: planData.summary,
         job_description: jobDescription,
         plan_data: planData as any,
-      });
+      }).select("id").single();
 
-      toast.success("Interview process designed successfully!");
+      if (insertError) throw insertError;
+
+      toast.success("Interview process designed! Redirecting...");
+      navigate(`/plan/${inserted.id}`);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to generate interview plan");
