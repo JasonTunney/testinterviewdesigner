@@ -86,7 +86,7 @@ const History = () => {
               Generated on {new Date(selectedPlan.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
             </p>
           </div>
-          <InterviewPipeline plan={selectedPlan.plan_data} onEditStage={() => {}} />
+          <InterviewPipeline plan={selectedPlan.plan_data} onEditStage={() => {}} onDeleteStage={() => {}} />
         </main>
       </div>
     );

@@ -64,6 +64,15 @@ const Index = () => {
     toast.success("Stage updated");
   }, [plan]);
 
+  const handleDeleteStage = useCallback((stageId: string) => {
+    if (!plan || plan.stages.length <= 1) return;
+    setPlan({
+      ...plan,
+      stages: plan.stages.filter((s) => s.id !== stageId),
+    });
+    toast.success("Stage removed");
+  }, [plan]);
+
   const handleSavePDF = () => {
     if (!plan || !publisherName.trim()) {
       toast.error("Please enter your name");
