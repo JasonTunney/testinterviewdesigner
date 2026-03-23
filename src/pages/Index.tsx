@@ -135,7 +135,7 @@ const Index = () => {
         <AnimatePresence mode="wait">
           {!plan ? (
             <motion.div key="upload" exit={{ opacity: 0, y: -20 }}>
-              <JobDescriptionUpload onSubmit={handleSubmit} isLoading={isLoading} />
+              <JobDescriptionUpload onSubmit={handleSubmit} isLoading={isLoading} isInterimRole={isInterimRole} onToggleInterim={setIsInterimRole} />
             </motion.div>
           ) : (
             <motion.div
@@ -143,7 +143,7 @@ const Index = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <InterviewPipeline plan={plan} onEditStage={handleEditStage} />
+              <InterviewPipeline plan={plan} onEditStage={handleEditStage} onDeleteStage={handleDeleteStage} />
             </motion.div>
           )}
         </AnimatePresence>
