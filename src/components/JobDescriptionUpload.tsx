@@ -11,6 +11,8 @@ import { toast } from "sonner";
 interface JobDescriptionUploadProps {
   onSubmit: (text: string) => void;
   isLoading: boolean;
+  isInterimRole: boolean;
+  onToggleInterim: (value: boolean) => void;
 }
 
 const SUPPORTED_TEXT_TYPES = ["text/plain"];
