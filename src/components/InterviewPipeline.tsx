@@ -7,6 +7,7 @@ interface InterviewPipelineProps {
   plan: InterviewPlan;
   onEditStage: (stageId: string, stage: InterviewStage) => void;
   onDeleteStage: (stageId: string) => void;
+  readOnly?: boolean;
 }
 
 const stageColors = [
