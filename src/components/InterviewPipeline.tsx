@@ -7,6 +7,7 @@ interface InterviewPipelineProps {
   plan: InterviewPlan;
   onEditStage: (stageId: string, stage: InterviewStage) => void;
   onDeleteStage: (stageId: string) => void;
+  readOnly?: boolean;
 }
 
 const stageColors = [
@@ -25,7 +26,7 @@ const stageBgColors = [
   "bg-stage-5",
 ];
 
-const InterviewPipeline = ({ plan, onEditStage, onDeleteStage }: InterviewPipelineProps) => {
+const InterviewPipeline = ({ plan, onEditStage, onDeleteStage, readOnly = false }: InterviewPipelineProps) => {
   return (
     <div className="max-w-4xl mx-auto">
       <motion.div
@@ -65,7 +66,8 @@ const InterviewPipeline = ({ plan, onEditStage, onDeleteStage }: InterviewPipeli
                 bgColorClass={stageBgColors[index % stageBgColors.length]}
                 onEdit={(updated) => onEditStage(stage.id, updated)}
                 onDelete={() => onDeleteStage(stage.id)}
-                canDelete={plan.stages.length > 1}
+                canDelete={!readOnly && plan.stages.length > 1}
+                readOnly={readOnly}
               />
             </motion.div>
             {index < plan.stages.length - 1 && (
