@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { jobDescription } = await req.json();
+    const { jobDescription, isInterimRole } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -68,9 +68,11 @@ serve(async (req) => {
       }
     }
 
-    const stageConstraints = config
-      ? `Design between ${config.min_stages} and ${config.max_stages} stages. Include ${config.min_questions_per_stage}-${config.max_questions_per_stage} questions per stage. Total interview time across all stages should not exceed ${config.max_interview_duration_minutes} minutes.`
-      : "Design 3-5 stages with 2-4 questions per stage.";
+    const stageConstraints = isInterimRole
+      ? "This is an interim or internal role. Design exactly 1 interview stage. Include 3-5 comprehensive questions covering the most critical competencies for the role."
+      : config
+        ? `Design between ${config.min_stages} and ${config.max_stages} stages. Include ${config.min_questions_per_stage}-${config.max_questions_per_stage} questions per stage. Total interview time across all stages should not exceed ${config.max_interview_duration_minutes} minutes.`
+        : "Design 3-5 stages with 2-4 questions per stage.";
 
     const systemPrompt = `You are an expert HR consultant and interview process designer. Given a job description, design a comprehensive, best-practice interview process.
 ${companyContext}

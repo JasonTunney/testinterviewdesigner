@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { InterviewPlan, InterviewStage } from "@/types/interview";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import JobDescriptionUpload from "@/components/JobDescriptionUpload";
 import InterviewPipeline from "@/components/InterviewPipeline";
 import { generatePDF } from "@/utils/pdfGenerator";
@@ -20,12 +22,14 @@ const Index = () => {
 
   const [lastJobDescription, setLastJobDescription] = useState("");
 
+  const [isInterimRole, setIsInterimRole] = useState(false);
+
   const handleSubmit = useCallback(async (jobDescription: string) => {
     setIsLoading(true);
     setLastJobDescription(jobDescription);
     try {
       const { data, error } = await supabase.functions.invoke("design-interview", {
-        body: { jobDescription },
+        body: { jobDescription, isInterimRole },
       });
 
       if (error) throw error;
@@ -34,7 +38,6 @@ const Index = () => {
       const planData = data as InterviewPlan;
       setPlan(planData);
 
-      // Save to database
       await supabase.from("interview_plans").insert({
         job_title: planData.jobTitle,
         department: planData.department,
@@ -50,7 +53,7 @@ const Index = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isInterimRole]);
 
   const handleEditStage = useCallback((stageId: string, updatedStage: InterviewStage) => {
     if (!plan) return;
@@ -59,6 +62,15 @@ const Index = () => {
       stages: plan.stages.map((s) => (s.id === stageId ? updatedStage : s)),
     });
     toast.success("Stage updated");
+  }, [plan]);
+
+  const handleDeleteStage = useCallback((stageId: string) => {
+    if (!plan || plan.stages.length <= 1) return;
+    setPlan({
+      ...plan,
+      stages: plan.stages.filter((s) => s.id !== stageId),
+    });
+    toast.success("Stage removed");
   }, [plan]);
 
   const handleSavePDF = () => {
@@ -123,7 +135,7 @@ const Index = () => {
         <AnimatePresence mode="wait">
           {!plan ? (
             <motion.div key="upload" exit={{ opacity: 0, y: -20 }}>
-              <JobDescriptionUpload onSubmit={handleSubmit} isLoading={isLoading} />
+              <JobDescriptionUpload onSubmit={handleSubmit} isLoading={isLoading} isInterimRole={isInterimRole} onToggleInterim={setIsInterimRole} />
             </motion.div>
           ) : (
             <motion.div
@@ -131,7 +143,7 @@ const Index = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <InterviewPipeline plan={plan} onEditStage={handleEditStage} />
+              <InterviewPipeline plan={plan} onEditStage={handleEditStage} onDeleteStage={handleDeleteStage} />
             </motion.div>
           )}
         </AnimatePresence>

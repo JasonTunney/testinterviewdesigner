@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Upload, FileText, Loader2, Sparkles } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,11 +11,13 @@ import { toast } from "sonner";
 interface JobDescriptionUploadProps {
   onSubmit: (text: string) => void;
   isLoading: boolean;
+  isInterimRole: boolean;
+  onToggleInterim: (value: boolean) => void;
 }
 
 const SUPPORTED_TEXT_TYPES = ["text/plain"];
 
-const JobDescriptionUpload = ({ onSubmit, isLoading }: JobDescriptionUploadProps) => {
+const JobDescriptionUpload = ({ onSubmit, isLoading, isInterimRole, onToggleInterim }: JobDescriptionUploadProps) => {
   const [jobDescription, setJobDescription] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [parsing, setParsing] = useState(false);
@@ -133,6 +137,23 @@ const JobDescriptionUpload = ({ onSubmit, isLoading }: JobDescriptionUploadProps
           className="min-h-[200px] bg-background/50 border-border text-foreground placeholder:text-muted-foreground resize-none"
           disabled={parsing}
         />
+      </motion.div>
+
+      {/* Interim/Internal toggle */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.25 }}
+        className="mt-4 flex items-center justify-center gap-3 p-4 rounded-xl bg-secondary/50 border border-border"
+      >
+        <Switch
+          id="interim-toggle"
+          checked={isInterimRole}
+          onCheckedChange={onToggleInterim}
+        />
+        <Label htmlFor="interim-toggle" className="text-foreground text-sm cursor-pointer">
+          Interim / Internal role <span className="text-muted-foreground">(single-stage process)</span>
+        </Label>
       </motion.div>
 
       <motion.div

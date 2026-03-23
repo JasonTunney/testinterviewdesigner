@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { InterviewStage } from "@/types/interview";
-import { ChevronDown, ChevronUp, Clock, Users, Pencil, Check, X, MessageSquare } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Users, Pencil, Check, X, MessageSquare, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,9 +12,11 @@ interface StageCardProps {
   colorClass: string;
   bgColorClass: string;
   onEdit: (stage: InterviewStage) => void;
+  onDelete?: () => void;
+  canDelete?: boolean;
 }
 
-const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit }: StageCardProps) => {
+const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, canDelete = true }: StageCardProps) => {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<InterviewStage>(stage);
@@ -60,14 +62,26 @@ const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit }: StageCard
         </div>
         <div className="flex items-center gap-2">
           {!editing && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); setEditing(true); setExpanded(true); }}
-              className="text-muted-foreground hover:text-primary"
-            >
-              <Pencil className="w-4 h-4" />
-            </Button>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); setEditing(true); setExpanded(true); }}
+                className="text-muted-foreground hover:text-primary"
+              >
+                <Pencil className="w-4 h-4" />
+              </Button>
+              {canDelete && onDelete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           )}
           {editing ? (
             <div className="flex gap-1">
