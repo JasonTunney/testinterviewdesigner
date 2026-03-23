@@ -14,9 +14,10 @@ interface StageCardProps {
   onEdit: (stage: InterviewStage) => void;
   onDelete?: () => void;
   canDelete?: boolean;
+  readOnly?: boolean;
 }
 
-const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, canDelete = true }: StageCardProps) => {
+const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, canDelete = true, readOnly = false }: StageCardProps) => {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<InterviewStage>(stage);
