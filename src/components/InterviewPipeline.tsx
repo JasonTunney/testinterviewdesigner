@@ -26,7 +26,7 @@ const stageBgColors = [
   "bg-stage-5",
 ];
 
-const InterviewPipeline = ({ plan, onEditStage, onDeleteStage }: InterviewPipelineProps) => {
+const InterviewPipeline = ({ plan, onEditStage, onDeleteStage, readOnly = false }: InterviewPipelineProps) => {
   return (
     <div className="max-w-4xl mx-auto">
       <motion.div
