@@ -62,14 +62,26 @@ const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, c
         </div>
         <div className="flex items-center gap-2">
           {!editing && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); setEditing(true); setExpanded(true); }}
-              className="text-muted-foreground hover:text-primary"
-            >
-              <Pencil className="w-4 h-4" />
-            </Button>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); setEditing(true); setExpanded(true); }}
+                className="text-muted-foreground hover:text-primary"
+              >
+                <Pencil className="w-4 h-4" />
+              </Button>
+              {canDelete && onDelete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           )}
           {editing ? (
             <div className="flex gap-1">
