@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { InterviewPlan, InterviewStage } from "@/types/interview";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import JobDescriptionUpload from "@/components/JobDescriptionUpload";
 import InterviewPipeline from "@/components/InterviewPipeline";
 import { generatePDF } from "@/utils/pdfGenerator";
