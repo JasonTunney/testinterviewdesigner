@@ -139,6 +139,23 @@ const JobDescriptionUpload = ({ onSubmit, isLoading, isInterimRole, onToggleInte
         />
       </motion.div>
 
+      {/* Interim/Internal toggle */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.25 }}
+        className="mt-4 flex items-center justify-center gap-3 p-4 rounded-xl bg-secondary/50 border border-border"
+      >
+        <Switch
+          id="interim-toggle"
+          checked={isInterimRole}
+          onCheckedChange={onToggleInterim}
+        />
+        <Label htmlFor="interim-toggle" className="text-foreground text-sm cursor-pointer">
+          Interim / Internal role <span className="text-muted-foreground">(single-stage process)</span>
+        </Label>
+      </motion.div>
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
