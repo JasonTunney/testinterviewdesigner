@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { InterviewStage } from "@/types/interview";
-import { ChevronDown, ChevronUp, Clock, Users, Pencil, Check, X, MessageSquare } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Users, Pencil, Check, X, MessageSquare, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
