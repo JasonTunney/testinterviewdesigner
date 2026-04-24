@@ -196,6 +196,7 @@ const Plan = () => {
         >
           <InterviewPipeline plan={plan} onEditStage={handleEditStage} onDeleteStage={handleDeleteStage} readOnly={isSubmitted} />
         </motion.div>
+        {id && <CandidatesPanel planId={id} />}
       </main>
 
       {/* PDF Save Dialog */}
