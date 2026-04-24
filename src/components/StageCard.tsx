@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { InterviewStage } from "@/types/interview";
-import { ChevronDown, ChevronUp, Clock, Users, Pencil, Check, X, MessageSquare, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Users, Pencil, Check, X, MessageSquare, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { supabase } from "@/integrations/supabase/client";
+
+const MAX_PANELISTS = 3;
+type Person = { id: string; name: string; role_title: string | null };
 
 interface StageCardProps {
   stage: InterviewStage;
