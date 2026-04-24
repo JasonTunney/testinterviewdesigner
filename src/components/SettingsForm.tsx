@@ -198,35 +198,13 @@ const SettingsForm = ({ password }: SettingsFormProps) => {
         </Field>
       </Section>
 
-      {/* Org Structure */}
-      <Section icon={<Users className="w-5 h-5 text-primary" />} title="Organisation Structure">
-        <Field label="Org Structure Description">
-          <Textarea value={config.org_structure || ""} onChange={(e) => update("org_structure", e.target.value)} className="bg-background/50 text-foreground" placeholder="Describe your business hierarchy, departments, reporting lines, team sizes..." rows={5} />
-        </Field>
-        <Field label="Org Chart Upload">
-          <div className="flex items-center gap-4">
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                className="hidden"
-                accept="image/*,.pdf"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleOrgChartUpload(file);
-                }}
-              />
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-foreground text-sm hover:bg-muted transition-colors">
-                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                {uploading ? "Uploading..." : "Upload Org Chart"}
-              </span>
-            </label>
-            {config.org_chart_url && (
-              <a href={config.org_chart_url} target="_blank" rel="noopener noreferrer" className="text-primary text-sm underline">
-                View current chart
-              </a>
-            )}
-          </div>
-        </Field>
+      {/* Panelists sourced from People directory */}
+      <Section icon={<Users className="w-5 h-5 text-primary" />} title="Panelists">
+        <p className="text-sm text-muted-foreground">
+          The Interview Designer now picks panelists directly from the{" "}
+          <a href="/people" className="text-primary underline">People directory</a>.
+          Add team members and tag their skills there — the AI will match them to roles automatically when designing interviews.
+        </p>
       </Section>
 
       {/* Process Constraints */}
