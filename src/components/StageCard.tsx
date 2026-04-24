@@ -164,25 +164,66 @@ const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, c
                 </h4>
                 <div className="grid gap-2">
                   {(editing ? editData : stage).panelists.map((p, i) => (
-                    <div key={i} className="bg-background/30 rounded-lg p-3 flex justify-between items-start">
-                      <div>
-                        {editing ? (
-                          <Input
-                            value={editData.panelists[i].role}
-                            onChange={(e) => {
-                              const updated = [...editData.panelists];
-                              updated[i] = { ...updated[i], role: e.target.value };
-                              setEditData({ ...editData, panelists: updated });
-                            }}
-                            className="bg-background/50 text-sm font-medium mb-1"
-                          />
-                        ) : (
-                          <span className="text-foreground font-medium text-sm">{p.role}</span>
-                        )}
+                    <div key={i} className="bg-background/30 rounded-lg p-3 flex justify-between items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-foreground font-medium text-sm">{p.role}</span>
                         <p className="text-muted-foreground text-xs mt-0.5">{p.reason}</p>
                       </div>
+                      {editing && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePanelist(i)}
+                          className="text-muted-foreground hover:text-destructive shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
+                  {editing && (
+                    <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={editData.panelists.length >= MAX_PANELISTS}
+                          className="justify-start"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          {editData.panelists.length >= MAX_PANELISTS
+                            ? `Max ${MAX_PANELISTS} panelists`
+                            : `Add panelist (${editData.panelists.length}/${MAX_PANELISTS})`}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 w-72" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search people…" />
+                          <CommandList>
+                            <CommandEmpty>No people found. Add them in the People directory.</CommandEmpty>
+                            <CommandGroup>
+                              {people
+                                .filter((person) => !editData.panelists.some((p) => p.role === person.name))
+                                .map((person) => (
+                                  <CommandItem
+                                    key={person.id}
+                                    value={`${person.name} ${person.role_title ?? ""}`}
+                                    onSelect={() => addPanelistByPerson(person)}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-medium">{person.name}</span>
+                                      {person.role_title && (
+                                        <span className="text-xs text-muted-foreground">{person.role_title}</span>
+                                      )}
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </div>
               </div>
 
