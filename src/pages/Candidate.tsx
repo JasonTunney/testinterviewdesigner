@@ -212,26 +212,47 @@ const Candidate = () => {
                 );
               })}
 
-              <div className="gradient-card border border-border rounded-2xl p-6">
-                <div className="flex items-start justify-between gap-4 mb-3 flex-wrap">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-primary font-semibold mb-1">Overall</p>
-                    <p className="text-foreground font-medium">Overall stage notes & score</p>
+              {(() => {
+                const overallKey = keyFor(stage.id, -1);
+                const overallUnlocked = (stage.questions ?? []).some((_, qIdx) => {
+                  const e = notes[keyFor(stage.id, qIdx)];
+                  return e && e.score != null && (e.notes ?? "").trim().length > 0;
+                });
+                return (
+                  <div className={`gradient-card border rounded-2xl p-6 transition-opacity ${overallUnlocked ? "border-border" : "border-border/50 opacity-60"}`}>
+                    <div className="flex items-start justify-between gap-4 mb-3 flex-wrap">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-primary font-semibold mb-1">Overall</p>
+                        <p className="text-foreground font-medium">Overall stage notes & score</p>
+                        {!overallUnlocked && (
+                          <p className="text-muted-foreground text-xs mt-1">
+                            Save a score and notes for at least one question to unlock.
+                          </p>
+                        )}
+                      </div>
+                      <div className={overallUnlocked ? "" : "pointer-events-none"}>
+                        <ScoreButtons stageId={stage.id} qIdx={-1} />
+                      </div>
+                    </div>
+                    <Textarea
+                      rows={3}
+                      placeholder="Overall impression for this stage…"
+                      value={notes[overallKey]?.notes ?? ""}
+                      onChange={(e) => updateNote(stage.id, -1, { notes: e.target.value })}
+                      disabled={!overallUnlocked}
+                      className="mb-3"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => saveEntry(stage.id, -1)}
+                      disabled={!overallUnlocked || savingKey === overallKey}
+                    >
+                      {savingKey === overallKey ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+                      Save
+                    </Button>
                   </div>
-                  <ScoreButtons stageId={stage.id} qIdx={-1} />
-                </div>
-                <Textarea
-                  rows={3}
-                  placeholder="Overall impression for this stage…"
-                  value={notes[keyFor(stage.id, -1)]?.notes ?? ""}
-                  onChange={(e) => updateNote(stage.id, -1, { notes: e.target.value })}
-                  className="mb-3"
-                />
-                <Button size="sm" onClick={() => saveEntry(stage.id, -1)} disabled={savingKey === keyFor(stage.id, -1)}>
-                  {savingKey === keyFor(stage.id, -1) ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
-                  Save
-                </Button>
-              </div>
+                );
+              })()}
             </TabsContent>
           ))}
         </Tabs>
