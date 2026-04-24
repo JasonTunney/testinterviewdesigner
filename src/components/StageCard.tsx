@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { InterviewStage } from "@/types/interview";
-import { ChevronDown, ChevronUp, Clock, Users, Pencil, Check, X, MessageSquare, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Users, Pencil, Check, X, MessageSquare, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { supabase } from "@/integrations/supabase/client";
+
+const MAX_PANELISTS = 3;
+type Person = { id: string; name: string; role_title: string | null };
 
 interface StageCardProps {
   stage: InterviewStage;
@@ -21,7 +27,34 @@ const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, c
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<InterviewStage>(stage);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
+  useEffect(() => {
+    if (!editing || people.length) return;
+    supabase.from("people").select("id, name, role_title").order("name").then(({ data }) => {
+      setPeople((data ?? []) as Person[]);
+    });
+  }, [editing, people.length]);
+
+  const addPanelistByPerson = (person: Person) => {
+    if (editData.panelists.length >= MAX_PANELISTS) return;
+    if (editData.panelists.some((p) => p.role === person.name)) return;
+    setEditData({
+      ...editData,
+      panelists: [
+        ...editData.panelists,
+        { role: person.name, reason: person.role_title ?? "Selected panelist" },
+      ],
+    });
+    setPickerOpen(false);
+  };
+
+  const removePanelist = (i: number) => {
+    const updated = [...editData.panelists];
+    updated.splice(i, 1);
+    setEditData({ ...editData, panelists: updated });
+  };
   const handleSave = () => {
     onEdit(editData);
     setEditing(false);
@@ -131,25 +164,66 @@ const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, c
                 </h4>
                 <div className="grid gap-2">
                   {(editing ? editData : stage).panelists.map((p, i) => (
-                    <div key={i} className="bg-background/30 rounded-lg p-3 flex justify-between items-start">
-                      <div>
-                        {editing ? (
-                          <Input
-                            value={editData.panelists[i].role}
-                            onChange={(e) => {
-                              const updated = [...editData.panelists];
-                              updated[i] = { ...updated[i], role: e.target.value };
-                              setEditData({ ...editData, panelists: updated });
-                            }}
-                            className="bg-background/50 text-sm font-medium mb-1"
-                          />
-                        ) : (
-                          <span className="text-foreground font-medium text-sm">{p.role}</span>
-                        )}
+                    <div key={i} className="bg-background/30 rounded-lg p-3 flex justify-between items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-foreground font-medium text-sm">{p.role}</span>
                         <p className="text-muted-foreground text-xs mt-0.5">{p.reason}</p>
                       </div>
+                      {editing && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePanelist(i)}
+                          className="text-muted-foreground hover:text-destructive shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
+                  {editing && (
+                    <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={editData.panelists.length >= MAX_PANELISTS}
+                          className="justify-start"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          {editData.panelists.length >= MAX_PANELISTS
+                            ? `Max ${MAX_PANELISTS} panelists`
+                            : `Add panelist (${editData.panelists.length}/${MAX_PANELISTS})`}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 w-72" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search people…" />
+                          <CommandList>
+                            <CommandEmpty>No people found. Add them in the People directory.</CommandEmpty>
+                            <CommandGroup>
+                              {people
+                                .filter((person) => !editData.panelists.some((p) => p.role === person.name))
+                                .map((person) => (
+                                  <CommandItem
+                                    key={person.id}
+                                    value={`${person.name} ${person.role_title ?? ""}`}
+                                    onSelect={() => addPanelistByPerson(person)}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-medium">{person.name}</span>
+                                      {person.role_title && (
+                                        <span className="text-xs text-muted-foreground">{person.role_title}</span>
+                                      )}
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </div>
               </div>
 
