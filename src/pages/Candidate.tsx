@@ -5,11 +5,17 @@ import { useAuth } from "@/hooks/useAuth";
 import AppNav from "@/components/AppNav";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
-import { Loader2, Save, Sparkles, Star } from "lucide-react";
+import { Loader2, Save, Sparkles, Star, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { InterviewPlan } from "@/types/interview";
+
+type NoteEntry = { score: number | null; notes: string };
+// keyed by `${stageId}::${questionIndex}` ; questionIndex -1 = overall stage
+type NotesMap = Record<string, NoteEntry>;
+
+const keyFor = (stageId: string, qIdx: number) => `${stageId}::${qIdx}`;
 
 const Candidate = () => {
   const { shortCode } = useParams();
@@ -20,9 +26,9 @@ const Candidate = () => {
 
   const [candidate, setCandidate] = useState<any>(null);
   const [plan, setPlan] = useState<InterviewPlan | null>(null);
-  const [notes, setNotes] = useState<Record<string, { score: number | null; notes: string }>>({});
+  const [notes, setNotes] = useState<NotesMap>({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
   const [rateScore, setRateScore] = useState(3);
   const [rateComment, setRateComment] = useState("");
 
@@ -35,26 +41,37 @@ const Candidate = () => {
       const { data: p } = await supabase.from("interview_plans").select("plan_data").eq("id", c.plan_id).maybeSingle();
       if (p) setPlan(p.plan_data as unknown as InterviewPlan);
       const { data: n } = await supabase.from("interview_notes").select("*").eq("candidate_id", c.id).eq("panelist_user_id", user.id);
-      const map: Record<string, { score: number | null; notes: string }> = {};
-      (n ?? []).forEach((row: any) => { map[row.stage_id] = { score: row.score, notes: row.notes ?? "" }; });
+      const map: NotesMap = {};
+      (n ?? []).forEach((row: any) => {
+        map[keyFor(row.stage_id, row.question_index ?? -1)] = { score: row.score, notes: row.notes ?? "" };
+      });
       setNotes(map);
       setLoading(false);
     })();
   }, [shortCode, user, navigate]);
 
-  const updateNote = (stageId: string, patch: Partial<{ score: number | null; notes: string }>) => {
-    setNotes((prev) => ({ ...prev, [stageId]: { score: prev[stageId]?.score ?? null, notes: prev[stageId]?.notes ?? "", ...patch } }));
+  const updateNote = (stageId: string, qIdx: number, patch: Partial<NoteEntry>) => {
+    const k = keyFor(stageId, qIdx);
+    setNotes((prev) => ({
+      ...prev,
+      [k]: { score: prev[k]?.score ?? null, notes: prev[k]?.notes ?? "", ...patch },
+    }));
   };
 
-  const saveStage = async (stageId: string) => {
+  const saveEntry = async (stageId: string, qIdx: number) => {
     if (!candidate || !user) return;
-    setSaving(true);
-    const n = notes[stageId] ?? { score: null, notes: "" };
+    const k = keyFor(stageId, qIdx);
+    setSavingKey(k);
+    const n = notes[k] ?? { score: null, notes: "" };
     const { error } = await supabase.from("interview_notes").upsert({
-      candidate_id: candidate.id, stage_id: stageId, panelist_user_id: user.id,
-      question_index: 0, score: n.score, notes: n.notes,
+      candidate_id: candidate.id,
+      stage_id: stageId,
+      panelist_user_id: user.id,
+      question_index: qIdx,
+      score: n.score,
+      notes: n.notes,
     }, { onConflict: "candidate_id,stage_id,panelist_user_id,question_index" });
-    setSaving(false);
+    setSavingKey(null);
     if (error) toast.error(error.message); else toast.success("Saved");
   };
 
@@ -69,12 +86,33 @@ const Candidate = () => {
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
   if (!candidate || !plan) return null;
 
+  const ScoreButtons = ({ stageId, qIdx }: { stageId: string; qIdx: number }) => {
+    const current = notes[keyFor(stageId, qIdx)]?.score ?? null;
+    return (
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            onClick={() => updateNote(stageId, qIdx, { score: n })}
+            className={`w-8 h-8 rounded text-sm border transition-colors ${
+              current === n
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border text-foreground hover:border-primary/50"
+            }`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AppNav subtitle={`Candidate · ${candidate.short_code}`} />
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+      <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          className="gradient-card border border-border rounded-2xl p-6 flex items-center justify-between">
+          className="gradient-card border border-border rounded-2xl p-6 flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="font-display text-2xl font-bold text-foreground">{candidate.name}</h1>
             <p className="text-muted-foreground text-sm">{plan.jobTitle} · code {candidate.short_code}</p>
@@ -104,28 +142,99 @@ const Candidate = () => {
           </div>
         )}
 
-        {plan.stages.map((stage) => (
-          <div key={stage.id} className="gradient-card border border-border rounded-2xl p-6">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-display font-semibold text-foreground">{stage.name}</h3>
-                <p className="text-muted-foreground text-xs">{stage.duration} min</p>
+        <Tabs defaultValue={plan.stages[0]?.id} className="w-full">
+          <TabsList className="flex flex-wrap h-auto justify-start gap-1 bg-muted/50 p-1">
+            {plan.stages.map((stage, i) => {
+              const hasAny = Object.keys(notes).some((k) => k.startsWith(`${stage.id}::`) && (notes[k].notes || notes[k].score));
+              return (
+                <TabsTrigger key={stage.id} value={stage.id} className="data-[state=active]:bg-background">
+                  <span className="text-xs font-medium mr-2 text-muted-foreground">{i + 1}</span>
+                  {stage.name}
+                  {hasAny && <CheckCircle2 className="w-3 h-3 ml-2 text-primary" />}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+
+          {plan.stages.map((stage) => (
+            <TabsContent key={stage.id} value={stage.id} className="mt-4 space-y-4">
+              <div className="gradient-card border border-border rounded-2xl p-6">
+                <div className="flex items-start justify-between flex-wrap gap-2">
+                  <div>
+                    <h3 className="font-display text-xl font-semibold text-foreground">{stage.name}</h3>
+                    <p className="text-muted-foreground text-sm mt-1">{stage.description}</p>
+                    <p className="text-muted-foreground text-xs mt-2">{stage.duration} min</p>
+                  </div>
+                </div>
               </div>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button key={n} onClick={() => updateNote(stage.id, { score: n })}
-                    className={`w-8 h-8 rounded text-sm border ${notes[stage.id]?.score === n ? "bg-primary text-primary-foreground border-primary" : "border-border text-foreground"}`}>{n}</button>
-                ))}
+
+              {(stage.questions ?? []).map((q, qIdx) => {
+                const k = keyFor(stage.id, qIdx);
+                return (
+                  <div key={qIdx} className="gradient-card border border-border rounded-2xl p-6">
+                    <div className="flex items-start justify-between gap-4 mb-3 flex-wrap">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs uppercase tracking-wide text-primary font-semibold mb-1">
+                          Q{qIdx + 1} · {q.category}
+                        </p>
+                        <p className="text-foreground font-medium">{q.question}</p>
+                      </div>
+                      <ScoreButtons stageId={stage.id} qIdx={qIdx} />
+                    </div>
+
+                    {q.scoringCriteria?.length > 0 && (
+                      <details className="mb-3 text-sm">
+                        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                          Scoring criteria
+                        </summary>
+                        <ul className="mt-2 space-y-1 pl-4">
+                          {q.scoringCriteria.map((s) => (
+                            <li key={s.score} className="text-muted-foreground">
+                              <span className="text-foreground font-medium">{s.score} – {s.label}:</span> {s.description}
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+
+                    <Textarea
+                      rows={3}
+                      placeholder="Notes for this question…"
+                      value={notes[k]?.notes ?? ""}
+                      onChange={(e) => updateNote(stage.id, qIdx, { notes: e.target.value })}
+                      className="mb-3"
+                    />
+                    <Button size="sm" onClick={() => saveEntry(stage.id, qIdx)} disabled={savingKey === k}>
+                      {savingKey === k ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+                      Save
+                    </Button>
+                  </div>
+                );
+              })}
+
+              <div className="gradient-card border border-border rounded-2xl p-6">
+                <div className="flex items-start justify-between gap-4 mb-3 flex-wrap">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-primary font-semibold mb-1">Overall</p>
+                    <p className="text-foreground font-medium">Overall stage notes & score</p>
+                  </div>
+                  <ScoreButtons stageId={stage.id} qIdx={-1} />
+                </div>
+                <Textarea
+                  rows={3}
+                  placeholder="Overall impression for this stage…"
+                  value={notes[keyFor(stage.id, -1)]?.notes ?? ""}
+                  onChange={(e) => updateNote(stage.id, -1, { notes: e.target.value })}
+                  className="mb-3"
+                />
+                <Button size="sm" onClick={() => saveEntry(stage.id, -1)} disabled={savingKey === keyFor(stage.id, -1)}>
+                  {savingKey === keyFor(stage.id, -1) ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+                  Save
+                </Button>
               </div>
-            </div>
-            <Textarea rows={4} placeholder="Your notes for this stage…"
-              value={notes[stage.id]?.notes ?? ""}
-              onChange={(e) => updateNote(stage.id, { notes: e.target.value })} className="mb-3" />
-            <Button size="sm" onClick={() => saveStage(stage.id)} disabled={saving}>
-              <Save className="w-4 h-4 mr-1" /> Save
-            </Button>
-          </div>
-        ))}
+            </TabsContent>
+          ))}
+        </Tabs>
       </main>
     </div>
   );
