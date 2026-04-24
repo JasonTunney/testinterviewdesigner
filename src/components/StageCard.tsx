@@ -27,7 +27,34 @@ const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, c
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<InterviewStage>(stage);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
+  useEffect(() => {
+    if (!editing || people.length) return;
+    supabase.from("people").select("id, name, role_title").order("name").then(({ data }) => {
+      setPeople((data ?? []) as Person[]);
+    });
+  }, [editing, people.length]);
+
+  const addPanelistByPerson = (person: Person) => {
+    if (editData.panelists.length >= MAX_PANELISTS) return;
+    if (editData.panelists.some((p) => p.role === person.name)) return;
+    setEditData({
+      ...editData,
+      panelists: [
+        ...editData.panelists,
+        { role: person.name, reason: person.role_title ?? "Selected panelist" },
+      ],
+    });
+    setPickerOpen(false);
+  };
+
+  const removePanelist = (i: number) => {
+    const updated = [...editData.panelists];
+    updated.splice(i, 1);
+    setEditData({ ...editData, panelists: updated });
+  };
   const handleSave = () => {
     onEdit(editData);
     setEditing(false);
