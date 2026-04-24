@@ -121,13 +121,7 @@ Be specific to the role described. Tailor panelist recommendations to the actual
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: orgChartBase64
-            ? [
-                { type: "text", text: `Design an interview process for this job:\n\n${jobDescription}` },
-                { type: "image_url", image_url: { url: `data:${orgChartMime};base64,${orgChartBase64}` } },
-              ]
-            : `Design an interview process for this job:\n\n${jobDescription}`
-          },
+          { role: "user", content: `Design an interview process for this job:\n\n${jobDescription}` },
         ],
       }),
     });
