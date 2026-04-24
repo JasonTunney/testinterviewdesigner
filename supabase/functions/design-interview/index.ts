@@ -28,8 +28,6 @@ serve(async (req) => {
 
     // Build context from config
     let companyContext = "";
-    let orgChartBase64 = "";
-    let orgChartMime = "";
     if (config) {
       const parts: string[] = [];
       if (config.company_name) parts.push(`Company: ${config.company_name}`);
@@ -37,35 +35,31 @@ serve(async (req) => {
       if (config.company_description) parts.push(`About: ${config.company_description}`);
       if (config.company_values) parts.push(`Core Values: ${config.company_values}`);
       if (config.hiring_philosophy) parts.push(`Hiring Philosophy: ${config.hiring_philosophy}`);
-      if (config.org_structure) parts.push(`Organisation Structure:\n${config.org_structure}`);
       if (config.competency_framework) parts.push(`Competency Framework: ${config.competency_framework}`);
       if (config.additional_context) parts.push(`Additional Context: ${config.additional_context}`);
-      
-      // Download and encode org chart if available
-      if (config.org_chart_url) {
-        try {
-          console.log("Fetching org chart from:", config.org_chart_url);
-          const chartResp = await fetch(config.org_chart_url);
-          if (chartResp.ok) {
-            const chartBuffer = await chartResp.arrayBuffer();
-            const chartBytes = new Uint8Array(chartBuffer);
-            let binary = "";
-            const chunkSize = 8192;
-            for (let i = 0; i < chartBytes.length; i += chunkSize) {
-              binary += String.fromCharCode(...chartBytes.subarray(i, i + chunkSize));
-            }
-            orgChartBase64 = btoa(binary);
-            orgChartMime = chartResp.headers.get("content-type") || "image/png";
-            parts.push("An org chart image has been attached below — use it to identify real roles, teams, and reporting lines for panelist recommendations.");
-          }
-        } catch (e) {
-          console.error("Failed to fetch org chart:", e);
-        }
-      }
 
       if (parts.length > 0) {
         companyContext = `\n\nIMPORTANT COMPANY CONTEXT - Use this to tailor the interview process:\n${parts.join("\n\n")}`;
       }
+    }
+
+    // Fetch people + their skills from the directory to use as the panelist pool
+    const { data: people } = await supabase
+      .from("people")
+      .select("id, name, role_title, people_skills(proficiency, skills(name))");
+
+    let peopleContext = "";
+    if (people && people.length > 0) {
+      const lines = people.map((p: any) => {
+        const skills = (p.people_skills || [])
+          .map((ps: any) => ps.skills?.name ? `${ps.skills.name} (${ps.proficiency}/5)` : null)
+          .filter(Boolean)
+          .join(", ");
+        return `- ${p.name}${p.role_title ? ` — ${p.role_title}` : ""}${skills ? ` | Skills: ${skills}` : ""}`;
+      }).join("\n");
+      peopleContext = `\n\nAVAILABLE PANELISTS (pick ONLY from this list when recommending panel members; match their role and skills to the stage):\n${lines}`;
+    } else {
+      peopleContext = `\n\nNote: No people are loaded in the People directory yet. Recommend panelists by generic role title only.`;
     }
 
     const stageConstraints = isInterimRole
@@ -76,11 +70,12 @@ serve(async (req) => {
 
     const systemPrompt = `You are an expert HR consultant and interview process designer. Given a job description, design a comprehensive, best-practice interview process.
 ${companyContext}
+${peopleContext}
 
 CONSTRAINTS:
 ${stageConstraints}
 ${config?.competency_framework ? `\nEnsure questions assess these competencies where relevant: ${config.competency_framework}` : ""}
-${config?.org_structure ? `\nWhen recommending panelists, refer to actual roles from the organisation structure provided above.` : ""}
+${people && people.length > 0 ? `\nWhen recommending panelists, you MUST pick from the AVAILABLE PANELISTS list above. Use each person's actual name in the "role" field (e.g. "Jane Doe — Engineering Manager"), and explain in "reason" why their skills/role fit this stage.` : ""}
 
 Return a JSON object with this exact structure (no markdown, no code fences, just valid JSON):
 {
@@ -95,7 +90,7 @@ Return a JSON object with this exact structure (no markdown, no code fences, jus
       "duration": "e.g. 30 minutes",
       "rationale": "Why this stage is important and what it evaluates",
       "panelists": [
-        { "role": "e.g. Hiring Manager", "reason": "Why this person should be on the panel" }
+        { "role": "Person's name and role (from AVAILABLE PANELISTS) or generic role if none provided", "reason": "Why this person should be on the panel" }
       ],
       "questions": [
         {
@@ -114,7 +109,7 @@ Return a JSON object with this exact structure (no markdown, no code fences, jus
   ]
 }
 
-Be specific to the role described. Tailor panelist recommendations to the company's actual structure when available.`;
+Be specific to the role described. Tailor panelist recommendations to the actual people available.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
