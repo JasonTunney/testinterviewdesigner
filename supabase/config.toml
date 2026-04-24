@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.settings]
 verify_jwt = false
+
+[functions.washup-summary]
+verify_jwt = false

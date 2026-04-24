@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { InterviewPlan, InterviewStage } from "@/types/interview";
 import InterviewPipeline from "@/components/InterviewPipeline";
+import CandidatesPanel from "@/components/CandidatesPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
@@ -196,6 +197,7 @@ const Plan = () => {
         >
           <InterviewPipeline plan={plan} onEditStage={handleEditStage} onDeleteStage={handleDeleteStage} readOnly={isSubmitted} />
         </motion.div>
+        {id && <CandidatesPanel planId={id} />}
       </main>
 
       {/* PDF Save Dialog */}

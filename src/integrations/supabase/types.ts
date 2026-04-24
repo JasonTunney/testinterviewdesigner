@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      candidates: {
+        Row: {
+          created_at: string
+          email: string | null
+          hire_start_date: string | null
+          hiring_manager_user_id: string | null
+          id: string
+          name: string
+          plan_id: string
+          short_code: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          hire_start_date?: string | null
+          hiring_manager_user_id?: string | null
+          id?: string
+          name: string
+          plan_id: string
+          short_code?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          hire_start_date?: string | null
+          hiring_manager_user_id?: string | null
+          id?: string
+          name?: string
+          plan_id?: string
+          short_code?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidates_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "interview_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_config: {
         Row: {
           additional_context: string | null
@@ -77,6 +124,133 @@ export type Database = {
         }
         Relationships: []
       }
+      hire_ratings: {
+        Row: {
+          candidate_id: string
+          comment: string | null
+          id: string
+          rated_at: string
+          rated_by_user_id: string
+          score: number
+        }
+        Insert: {
+          candidate_id: string
+          comment?: string | null
+          id?: string
+          rated_at?: string
+          rated_by_user_id: string
+          score: number
+        }
+        Update: {
+          candidate_id?: string
+          comment?: string | null
+          id?: string
+          rated_at?: string
+          rated_by_user_id?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hire_ratings_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: true
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_assignments: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          id: string
+          person_id: string | null
+          scheduled_at: string | null
+          stage_id: string
+          user_id: string
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          id?: string
+          person_id?: string | null
+          scheduled_at?: string | null
+          stage_id: string
+          user_id: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          person_id?: string | null
+          scheduled_at?: string | null
+          stage_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_assignments_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_assignments_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_notes: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          panelist_user_id: string
+          question_index: number | null
+          score: number | null
+          stage_id: string
+          submitted: boolean
+          updated_at: string
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          panelist_user_id: string
+          question_index?: number | null
+          score?: number | null
+          stage_id: string
+          submitted?: boolean
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          panelist_user_id?: string
+          question_index?: number | null
+          score?: number | null
+          stage_id?: string
+          submitted?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_notes_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interview_plans: {
         Row: {
           created_at: string
@@ -110,15 +284,238 @@ export type Database = {
         }
         Relationships: []
       }
+      people: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          profile_id: string | null
+          role_title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          profile_id?: string | null
+          role_title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          profile_id?: string | null
+          role_title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      people_skills: {
+        Row: {
+          person_id: string
+          proficiency: number
+          skill_id: string
+        }
+        Insert: {
+          person_id: string
+          proficiency: number
+          skill_id: string
+        }
+        Update: {
+          person_id?: string
+          proficiency?: number
+          skill_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "people_skills_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "people_skills_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          role_title: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          role_title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          role_title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      skills: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      washup_blind_scores: {
+        Row: {
+          id: string
+          panelist_user_id: string
+          score: number
+          session_id: string
+          submitted_at: string
+        }
+        Insert: {
+          id?: string
+          panelist_user_id: string
+          score: number
+          session_id: string
+          submitted_at?: string
+        }
+        Update: {
+          id?: string
+          panelist_user_id?: string
+          score?: number
+          session_id?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "washup_blind_scores_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "washup_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      washup_sessions: {
+        Row: {
+          ai_summary: Json | null
+          candidate_id: string
+          closed_at: string | null
+          created_at: string
+          id: string
+          status: string
+        }
+        Insert: {
+          ai_summary?: Json | null
+          candidate_id: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+        }
+        Update: {
+          ai_summary?: Json | null
+          candidate_id?: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "washup_sessions_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      panelist_qph: {
+        Row: {
+          avg_score: number | null
+          panelist_user_id: string | null
+          rated_hires: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      generate_short_code: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      session_is_closed: { Args: { _session_id: string }; Returns: boolean }
+      washup_closed_for: { Args: { _candidate_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "hiring_manager" | "interviewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -245,6 +642,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "hiring_manager", "interviewer"],
+    },
   },
 } as const
