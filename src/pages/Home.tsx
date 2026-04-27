@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, Users, ClipboardList, Star, ArrowRight, Search } from "lucide-react";
+import { Sparkles, Users, ClipboardList, Star, ArrowRight, Search, Trophy, Medal } from "lucide-react";
 import { toast } from "sonner";
 
 const Home = () => {
@@ -16,6 +16,7 @@ const Home = () => {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [pendingRatings, setPendingRatings] = useState<any[]>([]);
   const [qph, setQph] = useState<{ avg_score: number; rated_hires: number } | null>(null);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -43,6 +44,23 @@ const Home = () => {
         .eq("panelist_user_id", user.id)
         .maybeSingle();
       setQph(q as any);
+
+      const { data: lb } = await supabase
+        .from("panelist_qph")
+        .select("panelist_user_id, avg_score, rated_hires")
+        .order("avg_score", { ascending: false });
+      const ids = (lb ?? []).map((r: any) => r.panelist_user_id);
+      let profilesById: Record<string, any> = {};
+      if (ids.length) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, full_name, email, avatar_url")
+          .in("id", ids);
+        profilesById = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p]));
+      }
+      setLeaderboard(
+        (lb ?? []).map((r: any) => ({ ...r, profile: profilesById[r.panelist_user_id] }))
+      );
     };
     load();
   }, [user]);
@@ -92,6 +110,58 @@ const Home = () => {
           <Stat icon={<Users className="w-5 h-5 text-primary" />} label="Pending 3-mo ratings"
             value={String(pendingRatings.length)} sub="Hires you manage" />
         </div>
+
+        <Section title="Quality per Hire leaderboard">
+          {leaderboard.length === 0 ? (
+            <Empty text="No QPH ratings yet." />
+          ) : (
+            <ol className="space-y-2">
+              {(() => {
+                let lastScore: number | null = null;
+                let lastRank = 0;
+                return leaderboard.map((row, idx) => {
+                  const score = Number(row.avg_score);
+                  const rank = score === lastScore ? lastRank : idx + 1;
+                  lastScore = score; lastRank = rank;
+                  const isMe = row.panelist_user_id === user?.id;
+                  const name = row.profile?.full_name || row.profile?.email || "Unknown";
+                  const rankIcon = rank === 1
+                    ? <Trophy className="w-4 h-4 text-primary" />
+                    : rank === 2 || rank === 3
+                      ? <Medal className="w-4 h-4 text-muted-foreground" />
+                      : null;
+                  return (
+                    <li key={row.panelist_user_id}
+                      className={`p-4 rounded-xl border flex items-center justify-between transition ${
+                        isMe ? "border-primary/60 bg-primary/5" : "border-border"
+                      }`}>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-display font-semibold text-foreground shrink-0">
+                          {rank}
+                        </div>
+                        {rankIcon}
+                        <div className="min-w-0">
+                          <div className="text-foreground font-medium truncate">
+                            {name}{isMe && <span className="text-primary text-xs ml-2">You</span>}
+                          </div>
+                          <div className="text-muted-foreground text-xs">
+                            {row.rated_hires} rated hire{row.rated_hires === 1 ? "" : "s"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-foreground font-display font-bold text-lg">
+                          {score.toFixed(2)}
+                        </div>
+                        <div className="text-muted-foreground text-[10px] uppercase tracking-wide">/ 5</div>
+                      </div>
+                    </li>
+                  );
+                });
+              })()}
+            </ol>
+          )}
+        </Section>
 
         <Section title="Your interviews">
           {assignments.length === 0 ? (
