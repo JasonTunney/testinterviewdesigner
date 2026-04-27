@@ -11,6 +11,8 @@ export interface InterviewStage {
 export interface Panelist {
   role: string;
   reason: string;
+  person_id?: string;
+  name?: string;
 }
 
 export interface InterviewQuestion {

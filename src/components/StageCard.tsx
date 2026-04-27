@@ -39,12 +39,17 @@ const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, c
 
   const addPanelistByPerson = (person: Person) => {
     if (editData.panelists.length >= MAX_PANELISTS) return;
-    if (editData.panelists.some((p) => p.role === person.name)) return;
+    if (editData.panelists.some((p) => p.person_id === person.id || p.role === person.name)) return;
     setEditData({
       ...editData,
       panelists: [
         ...editData.panelists,
-        { role: person.name, reason: person.role_title ?? "Selected panelist" },
+        {
+          role: person.name,
+          reason: person.role_title ?? "Selected panelist",
+          person_id: person.id,
+          name: person.name,
+        },
       ],
     });
     setPickerOpen(false);
@@ -203,7 +208,7 @@ const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, c
                             <CommandEmpty>No people found. Add them in the People directory.</CommandEmpty>
                             <CommandGroup>
                               {people
-                                .filter((person) => !editData.panelists.some((p) => p.role === person.name))
+                                .filter((person) => !editData.panelists.some((p) => p.person_id === person.id || p.role === person.name))
                                 .map((person) => (
                                   <CommandItem
                                     key={person.id}
