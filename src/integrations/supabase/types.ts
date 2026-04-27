@@ -515,6 +515,10 @@ export type Database = {
         Returns: boolean
       }
       session_is_closed: { Args: { _session_id: string }; Returns: boolean }
+      sync_assignments_for_candidate: {
+        Args: { _candidate_id: string }
+        Returns: undefined
+      }
       washup_closed_for: { Args: { _candidate_id: string }; Returns: boolean }
     }
     Enums: {
