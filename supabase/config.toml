@@ -1,5 +1,8 @@
 project_id = "tmoljmxeflnoodqagfuc"
 
+[functions.admin-create-user]
+verify_jwt = true
+
 [functions.design-interview]
 verify_jwt = true
 

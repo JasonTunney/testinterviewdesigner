@@ -3,12 +3,20 @@ import AppNav from "@/components/AppNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Plus, Trash2, UserPlus, Search, X } from "lucide-react";
+import { Plus, Trash2, UserPlus, Search, X, ShieldCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+const genPassword = () => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  return Array.from({ length: 14 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+};
+
 const People = () => {
+  const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [people, setPeople] = useState<any[]>([]);
   const [skills, setSkills] = useState<any[]>([]);
   const [name, setName] = useState("");
@@ -18,6 +26,13 @@ const People = () => {
   const [skillDesc, setSkillDesc] = useState("");
   const [pickerOpenFor, setPickerOpenFor] = useState<string | null>(null);
   const [pickerQuery, setPickerQuery] = useState("");
+
+  // New-login form (admins only)
+  const [luName, setLuName] = useState("");
+  const [luEmail, setLuEmail] = useState("");
+  const [luPassword, setLuPassword] = useState("");
+  const [luRole, setLuRole] = useState("interviewer");
+  const [luBusy, setLuBusy] = useState(false);
 
   const load = async () => {
     const { data: p } = await supabase
@@ -29,6 +44,27 @@ const People = () => {
     setSkills(s ?? []);
   };
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle()
+      .then(({ data }) => setIsAdmin(!!data));
+  }, [user]);
+
+  const createLogin = async () => {
+    if (!luEmail.trim() || !luPassword) return;
+    setLuBusy(true);
+    const { data, error } = await supabase.functions.invoke("admin-create-user", {
+      body: { email: luEmail.trim(), password: luPassword, full_name: luName.trim() || null, role: luRole },
+    });
+    setLuBusy(false);
+    if (error || (data && data.error)) {
+      toast.error((data && data.error) || error?.message || "Could not create user");
+    } else {
+      toast.success(`Login created for ${luEmail.trim()} — share the temporary password with them.`);
+      setLuName(""); setLuEmail(""); setLuPassword(""); setLuRole("interviewer");
+    }
+  };
 
   const addPerson = async () => {
     if (!name.trim()) return;
@@ -86,6 +122,38 @@ const People = () => {
     <div className="min-h-screen bg-background">
       <AppNav subtitle="People & Skills" />
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+        {isAdmin && (
+          <section className="gradient-card border border-border rounded-2xl p-6">
+            <h2 className="font-display font-semibold text-foreground mb-1 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-primary" /> Team access
+            </h2>
+            <p className="text-muted-foreground text-xs mb-3">
+              Create a login for a new team member. They sign in with the temporary password below and can change it later. Admins only.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Input placeholder="Full name" value={luName} onChange={(e) => setLuName(e.target.value)} className="flex-1 min-w-[150px]" />
+              <Input type="email" placeholder="Email" value={luEmail} onChange={(e) => setLuEmail(e.target.value)} className="flex-1 min-w-[180px]" />
+              <div className="flex gap-1 flex-1 min-w-[200px]">
+                <Input placeholder="Temp password" value={luPassword} onChange={(e) => setLuPassword(e.target.value)} className="flex-1" />
+                <Button type="button" variant="outline" onClick={() => setLuPassword(genPassword())}>Generate</Button>
+              </div>
+              <select
+                value={luRole}
+                onChange={(e) => setLuRole(e.target.value)}
+                className="rounded-md border border-border bg-card text-foreground text-sm px-3"
+              >
+                <option value="interviewer">Interviewer</option>
+                <option value="hiring_manager">Hiring manager</option>
+                <option value="admin">Admin</option>
+              </select>
+              <Button onClick={createLogin} disabled={luBusy || !luEmail.trim() || luPassword.length < 8}
+                className="gradient-lime text-primary-foreground">
+                <UserPlus className="w-4 h-4 mr-1" />{luBusy ? "Creating…" : "Create login"}
+              </Button>
+            </div>
+          </section>
+        )}
+
         <section className="gradient-card border border-border rounded-2xl p-6">
           <h2 className="font-display font-semibold text-foreground mb-3 flex items-center gap-2">
             <UserPlus className="w-4 h-4 text-primary" /> Add person
