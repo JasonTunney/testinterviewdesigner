@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Plus, Trash2, UserPlus, Search, X, ShieldCheck } from "lucide-react";
+import { Plus, Trash2, UserPlus, Search, X, ShieldCheck, Upload } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -33,6 +33,9 @@ const People = () => {
   const [luPassword, setLuPassword] = useState("");
   const [luRole, setLuRole] = useState("interviewer");
   const [luBusy, setLuBusy] = useState(false);
+
+  // Bulk people upload (admins only)
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = async () => {
     const { data: p } = await supabase
@@ -63,6 +66,24 @@ const People = () => {
     } else {
       toast.success(`Login created for ${luEmail.trim()} — share the temporary password with them.`);
       setLuName(""); setLuEmail(""); setLuPassword(""); setLuRole("interviewer");
+    }
+  };
+
+  const bulkUpload = async (file: File) => {
+    if (!confirm("This will REPLACE the entire People directory with the contents of this file. Continue?")) return;
+    setBulkBusy(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const { data, error } = await supabase.functions.invoke("bulk-upload-people", { body: fd });
+    setBulkBusy(false);
+    if (error || (data && data.error)) {
+      toast.error((data && data.error) || error?.message || "Upload failed");
+    } else {
+      toast.success(
+        `Imported ${data.people_imported} people, ${data.skill_links} skill links` +
+        (data.skills_created ? `, ${data.skills_created} new skills added to the taxonomy` : "") + ".",
+      );
+      load();
     }
   };
 
@@ -150,6 +171,28 @@ const People = () => {
                 className="gradient-lime text-primary-foreground">
                 <UserPlus className="w-4 h-4 mr-1" />{luBusy ? "Creating…" : "Create login"}
               </Button>
+            </div>
+
+            <div className="mt-5 pt-5 border-t border-border">
+              <h3 className="text-foreground font-medium text-sm mb-1 flex items-center gap-2">
+                <Upload className="w-4 h-4 text-primary" /> Bulk import directory
+              </h3>
+              <p className="text-muted-foreground text-xs mb-3">
+                Upload an Excel file with columns <span className="text-foreground">Name</span>, <span className="text-foreground">Role</span>, <span className="text-foreground">Email</span> (optional), and <span className="text-foreground">Skills</span> (comma-separated, optionally <span className="text-foreground">Skill:4</span> for proficiency).
+                This <span className="text-foreground font-medium">replaces the entire directory</span>. Skills not in the taxonomy are added automatically.
+              </p>
+              <label className="inline-flex">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  disabled={bulkBusy}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) bulkUpload(f); e.target.value = ""; }}
+                />
+                <span className={`inline-flex items-center gap-1 rounded-md border border-border px-3 py-2 text-sm cursor-pointer hover:bg-secondary ${bulkBusy ? "opacity-50 pointer-events-none" : ""}`}>
+                  <Upload className="w-4 h-4" />{bulkBusy ? "Importing…" : "Choose Excel file"}
+                </span>
+              </label>
             </div>
           </section>
         )}

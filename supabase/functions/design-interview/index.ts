@@ -31,13 +31,16 @@ const planTool = {
             rationale: { type: "string" },
             panelists: {
               type: "array",
+              description: "People recommended for this stage's panel. Only real people from AVAILABLE PANELISTS may appear here. Empty array if no suitable person exists.",
               items: {
                 type: "object",
                 properties: {
-                  role: { type: "string", description: "Person's name and role (from AVAILABLE PANELISTS) or a generic role if none provided." },
-                  reason: { type: "string" },
+                  person_id: { type: "string", description: "The exact person_id copied verbatim from AVAILABLE PANELISTS." },
+                  name: { type: "string", description: "The person's name, exactly as listed." },
+                  role: { type: "string", description: "The person's role/title, exactly as listed in the directory." },
+                  reason: { type: "string", description: "Why this specific person fits this stage." },
                 },
-                required: ["role", "reason"],
+                required: ["person_id", "name", "role", "reason"],
               },
             },
             questions: {
@@ -121,11 +124,11 @@ serve(async (req) => {
           .map((ps: any) => ps.skills?.name ? `${ps.skills.name} (${ps.proficiency}/5)` : null)
           .filter(Boolean)
           .join(", ");
-        return `- ${p.name}${p.role_title ? ` — ${p.role_title}` : ""}${skills ? ` | Skills: ${skills}` : ""}`;
+        return `- person_id: ${p.id} | ${p.name}${p.role_title ? ` | ${p.role_title}` : ""}${skills ? ` | Skills: ${skills}` : ""}`;
       }).join("\n");
-      peopleContext = `\n\nAVAILABLE PANELISTS (pick ONLY from this list when recommending panel members; match their role and skills to the stage):\n${lines}`;
+      peopleContext = `\n\nAVAILABLE PANELISTS — you may ONLY recommend panelists from this exact list. Copy the person_id verbatim into each panelist you recommend:\n${lines}\n\nPANELIST RULES (strict):\n- Never invent a person, and never invent or suggest a job role/title that is not represented in this list.\n- For each stage, choose the most suitable people from the list based on their role and skills.\n- If no one in the list is a good fit for a stage, return an EMPTY panelists array for that stage and explain the gap in that stage's rationale. Do NOT fabricate a panelist to fill the gap.`;
     } else {
-      peopleContext = `\n\nNote: No people are loaded in the People directory yet. Recommend panelists by generic role title only.`;
+      peopleContext = `\n\nThe People directory is EMPTY. Return an empty panelists array for every stage, and note in the summary that team members must be added to the People directory before panels can be recommended. Do NOT invent panelists or job roles.`;
     }
 
     const stageConstraints = isInterimRole
@@ -141,7 +144,8 @@ ${peopleContext}
 CONSTRAINTS:
 ${stageConstraints}
 ${config?.competency_framework ? `\nEnsure questions assess these competencies where relevant: ${config.competency_framework}` : ""}
-${people && people.length > 0 ? `\nWhen recommending panelists, you MUST pick from the AVAILABLE PANELISTS list above. Use each person's actual name in the "role" field (e.g. "Jane Doe — Engineering Manager"), and explain in "reason" why their skills/role fit this stage.` : ""}
+
+Panelist recommendations must follow the PANELIST RULES above exactly — only real people from the directory, never invented people or roles.
 
 For each question, provide a full 1-5 scoring rubric (score 1 through 5, each with a label and a description of what that answer looks like). Be specific to the role described.`;
 
