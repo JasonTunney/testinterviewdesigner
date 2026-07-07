@@ -31,12 +31,12 @@ const Home = () => {
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
       const { data: r } = await supabase
-        .from("candidates")
-        .select("id, name, short_code, hire_start_date, hire_ratings(id)")
-        .eq("status", "hired")
+        .from("requisitions")
+        .select("id, requisition_id, job_title, plan_id, hired_name, hire_start_date, hire_ratings(id)")
+        .eq("status", "filled")
         .eq("hiring_manager_user_id", user.id)
         .lte("hire_start_date", threeMonthsAgo.toISOString().slice(0, 10));
-      setPendingRatings((r ?? []).filter((c: any) => !c.hire_ratings?.length));
+      setPendingRatings((r ?? []).filter((req: any) => !req.hire_ratings?.length));
 
       const { data: q } = await supabase
         .from("panelist_qph")
@@ -91,7 +91,7 @@ const Home = () => {
           <div className="flex flex-col sm:flex-row gap-3">
             <Button size="lg" className="gradient-lime text-primary-foreground font-semibold"
               onClick={() => navigate("/design")}>
-              <Sparkles className="w-4 h-4 mr-2" /> Design new interview
+              <Sparkles className="w-4 h-4 mr-2" /> New requisition
             </Button>
             <div className="flex gap-2">
               <Input placeholder="Candidate code" value={code} onChange={(e) => setCode(e.target.value)}
@@ -187,13 +187,15 @@ const Home = () => {
         {pendingRatings.length > 0 && (
           <Section title="3-month hire ratings due">
             <ul className="space-y-2">
-              {pendingRatings.map((c) => (
-                <li key={c.id}>
-                  <button onClick={() => navigate(`/candidate/${c.short_code}?rate=1`)}
+              {pendingRatings.map((req) => (
+                <li key={req.id}>
+                  <button onClick={() => navigate(`/plan/${req.plan_id}`)}
                     className="w-full text-left p-4 rounded-xl border border-primary/30 bg-primary/5 hover:border-primary/60 transition flex items-center justify-between">
                     <div>
-                      <div className="text-foreground font-medium">{c.name}</div>
-                      <div className="text-muted-foreground text-xs">Started {c.hire_start_date}</div>
+                      <div className="text-foreground font-medium">{req.hired_name || req.job_title}</div>
+                      <div className="text-muted-foreground text-xs">
+                        Req {req.requisition_id} · {req.job_title} · started {req.hire_start_date}
+                      </div>
                     </div>
                     <ArrowRight className="w-4 h-4 text-primary" />
                   </button>

@@ -7,15 +7,22 @@ import { motion } from "framer-motion";
 import { Settings, History } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isInterimRole, setIsInterimRole] = useState(false);
 
-  const handleSubmit = useCallback(async (jobDescription: string) => {
+  const handleSubmit = useCallback(async (jobDescription: string, jobTitle: string, requisitionId: string) => {
     setIsLoading(true);
     try {
+      // Fail fast if this Requisition ID is already in use.
+      const { data: existing } = await supabase
+        .from("requisitions").select("id").eq("requisition_id", requisitionId).maybeSingle();
+      if (existing) throw new Error(`Requisition ${requisitionId} already exists.`);
+
       const { data, error } = await supabase.functions.invoke("design-interview", {
         body: { jobDescription, isInterimRole },
       });
@@ -26,7 +33,7 @@ const Index = () => {
       const planData = data as InterviewPlan;
 
       const { data: inserted, error: insertError } = await supabase.from("interview_plans").insert({
-        job_title: planData.jobTitle,
+        job_title: jobTitle,
         department: planData.department,
         summary: planData.summary,
         job_description: jobDescription,
@@ -35,15 +42,24 @@ const Index = () => {
 
       if (insertError) throw insertError;
 
-      toast.success("Interview process designed! Redirecting...");
+      const { error: reqError } = await supabase.from("requisitions").insert({
+        requisition_id: requisitionId,
+        job_title: jobTitle,
+        department: planData.department,
+        plan_id: inserted.id,
+        hiring_manager_user_id: user?.id ?? null,
+      });
+      if (reqError) throw reqError;
+
+      toast.success(`Interview kit saved against ${requisitionId}! Redirecting...`);
       navigate(`/plan/${inserted.id}`);
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Failed to generate interview plan");
+      toast.error(err.message || "Failed to generate interview kit");
     } finally {
       setIsLoading(false);
     }
-  }, [isInterimRole, navigate]);
+  }, [isInterimRole, navigate, user]);
 
   return (
     <div className="min-h-screen bg-background">

@@ -10,7 +10,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -23,6 +48,7 @@ export type Database = {
           id: string
           name: string
           plan_id: string
+          requisition_id: string | null
           short_code: string | null
           status: string
           updated_at: string
@@ -35,6 +61,7 @@ export type Database = {
           id?: string
           name: string
           plan_id: string
+          requisition_id?: string | null
           short_code?: string | null
           status?: string
           updated_at?: string
@@ -47,6 +74,7 @@ export type Database = {
           id?: string
           name?: string
           plan_id?: string
+          requisition_id?: string | null
           short_code?: string | null
           status?: string
           updated_at?: string
@@ -57,6 +85,13 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "interview_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidates_requisition_id_fkey"
+            columns: ["requisition_id"]
+            isOneToOne: false
+            referencedRelation: "requisitions"
             referencedColumns: ["id"]
           },
         ]
@@ -126,35 +161,35 @@ export type Database = {
       }
       hire_ratings: {
         Row: {
-          candidate_id: string
           comment: string | null
           id: string
           rated_at: string
           rated_by_user_id: string
+          requisition_id: string
           score: number
         }
         Insert: {
-          candidate_id: string
           comment?: string | null
           id?: string
           rated_at?: string
           rated_by_user_id: string
+          requisition_id: string
           score: number
         }
         Update: {
-          candidate_id?: string
           comment?: string | null
           id?: string
           rated_at?: string
           rated_by_user_id?: string
+          requisition_id?: string
           score?: number
         }
         Relationships: [
           {
-            foreignKeyName: "hire_ratings_candidate_id_fkey"
-            columns: ["candidate_id"]
+            foreignKeyName: "hire_ratings_requisition_id_fkey"
+            columns: ["requisition_id"]
             isOneToOne: true
-            referencedRelation: "candidates"
+            referencedRelation: "requisitions"
             referencedColumns: ["id"]
           },
         ]
@@ -385,6 +420,92 @@ export type Database = {
         }
         Relationships: []
       }
+      requisition_panelists: {
+        Row: {
+          person_id: string
+          requisition_id: string
+          user_id: string
+        }
+        Insert: {
+          person_id: string
+          requisition_id: string
+          user_id: string
+        }
+        Update: {
+          person_id?: string
+          requisition_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requisition_panelists_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requisition_panelists_requisition_id_fkey"
+            columns: ["requisition_id"]
+            isOneToOne: false
+            referencedRelation: "requisitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requisitions: {
+        Row: {
+          created_at: string
+          department: string | null
+          hire_start_date: string | null
+          hired_email: string | null
+          hired_name: string | null
+          hiring_manager_user_id: string | null
+          id: string
+          job_title: string
+          plan_id: string | null
+          requisition_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          hire_start_date?: string | null
+          hired_email?: string | null
+          hired_name?: string | null
+          hiring_manager_user_id?: string | null
+          id?: string
+          job_title: string
+          plan_id?: string | null
+          requisition_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          hire_start_date?: string | null
+          hired_email?: string | null
+          hired_name?: string | null
+          hiring_manager_user_id?: string | null
+          id?: string
+          job_title?: string
+          plan_id?: string | null
+          requisition_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requisitions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "interview_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skills: {
         Row: {
           created_at: string
@@ -519,6 +640,10 @@ export type Database = {
         Args: { _candidate_id: string }
         Returns: undefined
       }
+      sync_requisition_panelists: {
+        Args: { _requisition_id: string }
+        Returns: undefined
+      }
       washup_closed_for: { Args: { _candidate_id: string }; Returns: boolean }
     }
     Enums: {
@@ -648,6 +773,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "hiring_manager", "interviewer"],

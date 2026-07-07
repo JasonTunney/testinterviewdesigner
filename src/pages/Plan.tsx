@@ -5,15 +5,18 @@ import InterviewPipeline from "@/components/InterviewPipeline";
 import CandidatesPanel from "@/components/CandidatesPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Download, Link2, Check, Lock, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, Link2, Check, Lock, Loader2, Briefcase, UserCheck, Star } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { generatePDF } from "@/utils/pdfGenerator";
 
 const Plan = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [plan, setPlan] = useState<InterviewPlan | null>(null);
   const [status, setStatus] = useState<string>("draft");
   const [loading, setLoading] = useState(true);
@@ -21,6 +24,29 @@ const Plan = () => {
   const [linkCopied, setLinkCopied] = useState(false);
   const [showPdfDialog, setShowPdfDialog] = useState(false);
   const [publisherName, setPublisherName] = useState("");
+
+  // Requisition workspace
+  const [req, setReq] = useState<any>(null);
+  const [rating, setRating] = useState<any>(null);
+  const [hiredName, setHiredName] = useState("");
+  const [hiredEmail, setHiredEmail] = useState("");
+  const [hireStart, setHireStart] = useState("");
+  const [rateScore, setRateScore] = useState(3);
+  const [rateComment, setRateComment] = useState("");
+
+  const loadReq = useCallback(async () => {
+    if (!id) return;
+    const { data: r } = await supabase.from("requisitions").select("*").eq("plan_id", id).maybeSingle();
+    setReq(r);
+    if (r) {
+      setHiredName(r.hired_name ?? "");
+      setHiredEmail(r.hired_email ?? "");
+      setHireStart(r.hire_start_date ?? "");
+      const { data: hr } = await supabase.from("hire_ratings").select("*").eq("requisition_id", r.id).maybeSingle();
+      setRating(hr);
+      if (hr) { setRateScore(hr.score); setRateComment(hr.comment ?? ""); }
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -32,16 +58,40 @@ const Plan = () => {
         .single();
 
       if (error || !data) {
-        toast.error("Plan not found");
+        toast.error("Kit not found");
         navigate("/");
         return;
       }
       setPlan(data.plan_data as unknown as InterviewPlan);
       setStatus(data.status ?? "draft");
+      await loadReq();
       setLoading(false);
     };
     fetchPlan();
-  }, [id, navigate]);
+  }, [id, navigate, loadReq]);
+
+  const recordHire = async () => {
+    if (!req || !hiredName.trim() || !hireStart) { toast.error("Enter the hire's name and start date"); return; }
+    const { error } = await supabase.from("requisitions").update({
+      hired_name: hiredName.trim(),
+      hired_email: hiredEmail.trim() || null,
+      hire_start_date: hireStart,
+      status: "filled",
+    }).eq("id", req.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Hire recorded");
+    loadReq();
+  };
+
+  const submitRating = async () => {
+    if (!req || !user) return;
+    const { error } = await supabase.from("hire_ratings").upsert({
+      requisition_id: req.id, rated_by_user_id: user.id, score: rateScore, comment: rateComment || null,
+    }, { onConflict: "requisition_id" });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Hire rating saved");
+    loadReq();
+  };
 
   const savePlan = useCallback(async (updatedPlan: InterviewPlan) => {
     if (!id) return;
@@ -191,13 +241,69 @@ const Plan = () => {
             </p>
           </motion.div>
         )}
+        {req && (
+          <div className="max-w-4xl mx-auto mb-6 gradient-card border border-border rounded-2xl p-5 flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-lg bg-secondary"><Briefcase className="w-5 h-5 text-primary" /></div>
+              <div>
+                <div className="text-foreground font-display font-semibold text-lg">{req.job_title}</div>
+                <div className="text-muted-foreground text-xs">Requisition {req.requisition_id}</div>
+              </div>
+            </div>
+            <span className={`text-xs px-3 py-1 rounded-full capitalize ${
+              req.status === "filled" ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"
+            }`}>{req.status}{req.hired_name ? ` · ${req.hired_name}` : ""}</span>
+          </div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <InterviewPipeline plan={plan} onEditStage={handleEditStage} onDeleteStage={handleDeleteStage} readOnly={isSubmitted} />
         </motion.div>
-        {id && <CandidatesPanel planId={id} />}
+
+        {req && (
+          <div className="max-w-4xl mx-auto mt-10 gradient-card border border-border rounded-2xl p-6">
+            <h3 className="font-display font-semibold text-lg text-foreground mb-4 flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-primary" /> Record hire
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <Input placeholder="Hired person's name" value={hiredName} onChange={(e) => setHiredName(e.target.value)} className="flex-1 min-w-[180px]" />
+              <Input placeholder="Email (optional)" value={hiredEmail} onChange={(e) => setHiredEmail(e.target.value)} className="flex-1 min-w-[180px]" />
+              <Input type="date" value={hireStart} onChange={(e) => setHireStart(e.target.value)} className="min-w-[150px]" />
+              <Button onClick={recordHire} className="gradient-lime text-primary-foreground">
+                {req.status === "filled" ? "Update hire" : "Mark filled"}
+              </Button>
+            </div>
+            <p className="text-muted-foreground text-xs mt-2">
+              Records who was hired for this requisition and starts the 3-month Quality-per-Hire clock.
+            </p>
+          </div>
+        )}
+
+        {req && req.status === "filled" && (
+          <div className="max-w-4xl mx-auto mt-6 gradient-card border border-primary/40 rounded-2xl p-6">
+            <h3 className="font-display font-semibold text-lg text-foreground mb-1 flex items-center gap-2">
+              <Star className="w-5 h-5 text-primary" /> 3-month hire rating
+            </h3>
+            <p className="text-muted-foreground text-sm mb-3">
+              How is this hire performing? This score credits every panelist on this requisition's kit.
+            </p>
+            <div className="flex gap-2 mb-3">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button key={n} onClick={() => setRateScore(n)}
+                  className={`w-10 h-10 rounded-lg border ${rateScore === n ? "bg-primary text-primary-foreground border-primary" : "border-border text-foreground"}`}>{n}</button>
+              ))}
+            </div>
+            <Textarea placeholder="Optional comment" value={rateComment} onChange={(e) => setRateComment(e.target.value)} className="mb-3" />
+            <Button onClick={submitRating} className="gradient-lime text-primary-foreground">
+              {rating ? "Update rating" : "Submit rating"}
+            </Button>
+          </div>
+        )}
+
+        {id && req && <CandidatesPanel requisitionId={req.id} planId={id} />}
       </main>
 
       {/* PDF Save Dialog */}

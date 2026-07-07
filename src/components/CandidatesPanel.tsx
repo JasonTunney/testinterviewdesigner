@@ -6,9 +6,9 @@ import { toast } from "sonner";
 import { Copy, UserPlus, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-interface Props { planId: string; }
+interface Props { requisitionId: string; planId: string; }
 
-const CandidatesPanel = ({ planId }: Props) => {
+const CandidatesPanel = ({ requisitionId, planId }: Props) => {
   const [candidates, setCandidates] = useState<any[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -16,16 +16,16 @@ const CandidatesPanel = ({ planId }: Props) => {
   const navigate = useNavigate();
 
   const load = async () => {
-    const { data } = await supabase.from("candidates").select("*").eq("plan_id", planId).order("created_at", { ascending: false });
+    const { data } = await supabase.from("candidates").select("*").eq("requisition_id", requisitionId).order("created_at", { ascending: false });
     setCandidates(data ?? []);
   };
 
-  useEffect(() => { load(); }, [planId]);
+  useEffect(() => { load(); }, [requisitionId]);
 
   const add = async () => {
     if (!name.trim()) return;
     setBusy(true);
-    const { data, error } = await supabase.from("candidates").insert({ plan_id: planId, name: name.trim(), email: email.trim() || null }).select().single();
+    const { data, error } = await supabase.from("candidates").insert({ requisition_id: requisitionId, plan_id: planId, name: name.trim(), email: email.trim() || null }).select().single();
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success(`Added — code ${data.short_code}`);

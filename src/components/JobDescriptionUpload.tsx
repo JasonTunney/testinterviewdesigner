@@ -4,12 +4,13 @@ import { Upload, FileText, Loader2, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface JobDescriptionUploadProps {
-  onSubmit: (text: string) => void;
+  onSubmit: (text: string, jobTitle: string, requisitionId: string) => void;
   isLoading: boolean;
   isInterimRole: boolean;
   onToggleInterim: (value: boolean) => void;
@@ -19,6 +20,8 @@ const SUPPORTED_TEXT_TYPES = ["text/plain"];
 
 const JobDescriptionUpload = ({ onSubmit, isLoading, isInterimRole, onToggleInterim }: JobDescriptionUploadProps) => {
   const [jobDescription, setJobDescription] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [requisitionId, setRequisitionId] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [parsing, setParsing] = useState(false);
 
@@ -82,9 +85,25 @@ const JobDescriptionUpload = ({ onSubmit, isLoading, isInterimRole, onToggleInte
           Interview Process <span className="text-gradient-lime">Designer</span>
         </motion.h1>
         <p className="text-muted-foreground text-lg">
-          Upload a job description and let AI design your best-practice interview process
+          Enter the role details and job description — AI designs a best-practice interview kit against your requisition
         </p>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="grid sm:grid-cols-2 gap-3 mb-4"
+      >
+        <div>
+          <Label className="text-foreground text-sm mb-1.5 block">Job title</Label>
+          <Input placeholder="e.g. Data Analyst" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} disabled={isProcessing} />
+        </div>
+        <div>
+          <Label className="text-foreground text-sm mb-1.5 block">Requisition ID</Label>
+          <Input placeholder="e.g. REQ-1042" value={requisitionId} onChange={(e) => setRequisitionId(e.target.value)} disabled={isProcessing} />
+        </div>
+      </motion.div>
 
       <motion.div
         initial={{ opacity: 0, scale: 0.98 }}
@@ -164,8 +183,8 @@ const JobDescriptionUpload = ({ onSubmit, isLoading, isInterimRole, onToggleInte
       >
         <Button
           size="lg"
-          disabled={!jobDescription.trim() || isProcessing}
-          onClick={() => onSubmit(jobDescription)}
+          disabled={!jobDescription.trim() || !jobTitle.trim() || !requisitionId.trim() || isProcessing}
+          onClick={() => onSubmit(jobDescription, jobTitle.trim(), requisitionId.trim())}
           className="gradient-lime text-primary-foreground font-semibold text-lg px-8 py-6 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
         >
           {isLoading ? (

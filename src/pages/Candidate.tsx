@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import AppNav from "@/components/AppNav";
@@ -21,16 +21,12 @@ const Candidate = () => {
   const { shortCode } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [params] = useSearchParams();
-  const showRate = params.get("rate") === "1";
 
   const [candidate, setCandidate] = useState<any>(null);
   const [plan, setPlan] = useState<InterviewPlan | null>(null);
   const [notes, setNotes] = useState<NotesMap>({});
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
-  const [rateScore, setRateScore] = useState(3);
-  const [rateComment, setRateComment] = useState("");
 
   useEffect(() => {
     if (!shortCode || !user) return;
@@ -75,14 +71,6 @@ const Candidate = () => {
     if (error) toast.error(error.message); else toast.success("Saved");
   };
 
-  const submitRating = async () => {
-    if (!candidate || !user) return;
-    const { error } = await supabase.from("hire_ratings").insert({
-      candidate_id: candidate.id, rated_by_user_id: user.id, score: rateScore, comment: rateComment,
-    });
-    if (error) toast.error(error.message); else { toast.success("Rating submitted"); navigate("/"); }
-  };
-
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
   if (!candidate || !plan) return null;
 
@@ -124,23 +112,6 @@ const Candidate = () => {
             </Button>
           </div>
         </motion.div>
-
-        {showRate && (
-          <div className="gradient-card border border-primary/40 rounded-2xl p-6">
-            <h2 className="font-display text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
-              <Star className="w-4 h-4 text-primary" /> 3-month hire rating
-            </h2>
-            <p className="text-muted-foreground text-sm mb-4">How happy are you with this hire so far?</p>
-            <div className="flex gap-2 mb-3">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button key={n} onClick={() => setRateScore(n)}
-                  className={`w-10 h-10 rounded-lg border ${rateScore === n ? "bg-primary text-primary-foreground border-primary" : "border-border text-foreground"}`}>{n}</button>
-              ))}
-            </div>
-            <Textarea placeholder="Optional comment" value={rateComment} onChange={(e) => setRateComment(e.target.value)} className="mb-3" />
-            <Button onClick={submitRating} className="gradient-lime text-primary-foreground">Submit rating</Button>
-          </div>
-        )}
 
         <Tabs defaultValue={plan.stages[0]?.id} className="w-full">
           <TabsList className="flex flex-wrap h-auto justify-start gap-1 bg-muted/50 p-1">
