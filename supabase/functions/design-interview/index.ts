@@ -94,6 +94,15 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Require a genuine logged-in user (the anon key passes verify_jwt but is public).
+    const jwt = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
+    const { data: authData } = await supabase.auth.getUser(jwt);
+    if (!authData?.user) {
+      return new Response(JSON.stringify({ error: "Not authorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: config } = await supabase
       .from("company_config")
       .select("*")

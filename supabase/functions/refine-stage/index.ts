@@ -79,6 +79,11 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Require a genuine logged-in user (the anon key passes verify_jwt but is public).
+    const jwt = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
+    const { data: authData } = await supabase.auth.getUser(jwt);
+    if (!authData?.user) return json({ error: "Not authorized" }, 401);
+
     // Job description + company context for this kit.
     const { data: planRow } = await supabase
       .from("interview_plans").select("job_description").eq("id", planId).maybeSingle();

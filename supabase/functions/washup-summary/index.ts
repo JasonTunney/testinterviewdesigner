@@ -19,6 +19,11 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    // Require a genuine logged-in user (the anon key passes verify_jwt but is public).
+    const jwt = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
+    const { data: authData } = await supabase.auth.getUser(jwt);
+    if (!authData?.user) return new Response(JSON.stringify({ error: "Not authorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
     const { data: session } = await supabase.from("washup_sessions").select("*, candidates(*, interview_plans(plan_data, job_description))").eq("id", session_id).single();
     if (!session) throw new Error("Session not found");
     const { data: notes } = await supabase.from("interview_notes").select("*").eq("candidate_id", session.candidate_id);
