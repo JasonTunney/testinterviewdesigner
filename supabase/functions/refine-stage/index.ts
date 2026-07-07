@@ -86,8 +86,9 @@ Deno.serve(async (req) => {
 
     // Job description + company context for this kit.
     const { data: planRow } = await supabase
-      .from("interview_plans").select("job_description").eq("id", planId).maybeSingle();
+      .from("interview_plans").select("job_description, job_title").eq("id", planId).maybeSingle();
     const jobDescription = planRow?.job_description ?? "";
+    const roleTitle = (planRow?.job_title ?? "").trim();
 
     const { data: config } = await supabase.from("company_config").select("*").limit(1).single();
     let companyContext = "";
@@ -101,9 +102,14 @@ Deno.serve(async (req) => {
       if (parts.length) companyContext = `\n\nCOMPANY CONTEXT:\n${parts.join("\n")}`;
     }
 
-    const { data: people } = await supabase
+    const { data: allPeople } = await supabase
       .from("people")
       .select("id, name, role_title, people_skills(proficiency, skills(name))");
+
+    // Rule: never recommend anyone whose job title is the same as the role being recruited for.
+    const people = (allPeople ?? []).filter(
+      (p: any) => !roleTitle || (p.role_title ?? "").trim().toLowerCase() !== roleTitle.toLowerCase(),
+    );
 
     let peopleContext = "";
     if (people && people.length > 0) {
@@ -113,7 +119,7 @@ Deno.serve(async (req) => {
           .filter(Boolean).join(", ");
         return `- person_id: ${p.id} | ${p.name}${p.role_title ? ` | ${p.role_title}` : ""}${skills ? ` | Skills: ${skills}` : ""}`;
       }).join("\n");
-      peopleContext = `\n\nAVAILABLE PANELISTS — you may ONLY recommend panelists from this exact list; copy the person_id verbatim:\n${lines}\n\nPANELIST RULES (strict): never invent a person or a job role. Prefer people whose skills match the competencies this stage assesses. If nobody fits, return an empty panelists array.`;
+      peopleContext = `\n\nAVAILABLE PANELISTS — you may ONLY recommend panelists from this exact list; copy the person_id verbatim:\n${lines}\n\nPANELIST RULES (strict): never invent a person or a job role. Prefer people whose skills match the competencies this stage assesses. If nobody fits, return an empty panelists array.\n\nPANEL COMPOSITION RULES:\n- A talent/recruiter screening stage must have EXACTLY ONE interviewer.\n- Never place two people with the same job title on this stage's panel — every panelist must have a distinct job title.\n- Do not recommend anyone whose job title is the same as the role being recruited for${roleTitle ? ` (${roleTitle})` : ""}; such peers are already excluded from the list above.`;
     } else {
       peopleContext = `\n\nThe People directory is EMPTY. Return an empty panelists array and do NOT invent panelists or roles.`;
     }

@@ -118,6 +118,14 @@ const Plan = () => {
     toast.success("Stage updated & saved");
   }, [plan, status, savePlan]);
 
+  const handleReorderStages = useCallback((stages: InterviewStage[]) => {
+    if (!plan || status === "submitted") return;
+    const updatedPlan = { ...plan, stages };
+    setPlan(updatedPlan);
+    savePlan(updatedPlan);
+    toast.success("Stage order updated & saved");
+  }, [plan, status, savePlan]);
+
   const handleDeleteStage = useCallback((stageId: string) => {
     if (!plan || plan.stages.length <= 1 || status === "submitted") return;
     const updatedPlan = {
@@ -260,7 +268,7 @@ const Plan = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <InterviewPipeline plan={plan} onEditStage={handleEditStage} onDeleteStage={handleDeleteStage} readOnly={isSubmitted} planId={id} />
+          <InterviewPipeline plan={plan} onEditStage={handleEditStage} onDeleteStage={handleDeleteStage} onReorder={handleReorderStages} readOnly={isSubmitted} planId={id} />
         </motion.div>
 
         {req && (

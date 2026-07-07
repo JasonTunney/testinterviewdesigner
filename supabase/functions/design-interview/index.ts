@@ -84,7 +84,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { jobDescription, isInterimRole } = await req.json();
+    const { jobDescription, isInterimRole, jobTitle } = await req.json();
+    const roleTitle = (jobTitle ?? "").trim();
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
@@ -127,9 +128,15 @@ serve(async (req) => {
     }
 
     // Fetch people + their skills from the directory to use as the panelist pool
-    const { data: people } = await supabase
+    const { data: allPeople } = await supabase
       .from("people")
       .select("id, name, role_title, people_skills(proficiency, skills(name))");
+
+    // Rule: never recommend anyone whose job title is the same as the role being
+    // recruited for — exclude those peers from the pool entirely.
+    const people = (allPeople ?? []).filter(
+      (p: any) => !roleTitle || (p.role_title ?? "").trim().toLowerCase() !== roleTitle.toLowerCase(),
+    );
 
     let peopleContext = "";
     if (people && people.length > 0) {
@@ -140,7 +147,7 @@ serve(async (req) => {
           .join(", ");
         return `- person_id: ${p.id} | ${p.name}${p.role_title ? ` | ${p.role_title}` : ""}${skills ? ` | Skills: ${skills}` : ""}`;
       }).join("\n");
-      peopleContext = `\n\nAVAILABLE PANELISTS — you may ONLY recommend panelists from this exact list. Copy the person_id verbatim into each panelist you recommend:\n${lines}\n\nPANELIST RULES (strict):\n- Never invent a person, and never invent or suggest a job role/title that is not represented in this list.\n- For each stage, choose the most suitable people from the list based on their role and skills.\n- If no one in the list is a good fit for a stage, return an EMPTY panelists array for that stage and explain the gap in that stage's rationale. Do NOT fabricate a panelist to fill the gap.`;
+      peopleContext = `\n\nAVAILABLE PANELISTS — you may ONLY recommend panelists from this exact list. Copy the person_id verbatim into each panelist you recommend:\n${lines}\n\nPANELIST RULES (strict):\n- Never invent a person, and never invent or suggest a job role/title that is not represented in this list.\n- For each stage, choose the most suitable people from the list based on their role and skills.\n- If no one in the list is a good fit for a stage, return an EMPTY panelists array for that stage and explain the gap in that stage's rationale. Do NOT fabricate a panelist to fill the gap.\n\nPANEL COMPOSITION RULES (apply to every stage):\n- A talent/recruiter screening stage (a first-round screen run by the Talent or Recruitment team) must have EXACTLY ONE interviewer.\n- Never place two people with the same job title on the same stage's panel — every panelist on a given stage must have a distinct job title.\n- Do not recommend anyone whose job title is the same as the role being recruited for${roleTitle ? ` (${roleTitle})` : ""}; such peers have already been excluded from the list above.`;
     } else {
       peopleContext = `\n\nThe People directory is EMPTY. Return an empty panelists array for every stage, and note in the summary that team members must be added to the People directory before panels can be recommended. Do NOT invent panelists or job roles.`;
     }

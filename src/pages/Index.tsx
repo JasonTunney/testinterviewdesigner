@@ -24,7 +24,7 @@ const Index = () => {
       if (existing) throw new Error(`Requisition ${requisitionId} already exists.`);
 
       const { data, error } = await supabase.functions.invoke("design-interview", {
-        body: { jobDescription, isInterimRole },
+        body: { jobDescription, isInterimRole, jobTitle },
       });
 
       if (error) throw error;
