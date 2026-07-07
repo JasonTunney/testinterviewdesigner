@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Lock, Clock, Briefcase, Eye, Trash2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowLeft, Lock, Clock, Briefcase, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { InterviewPlan } from "@/types/interview";
 import InterviewPipeline from "@/components/InterviewPipeline";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 interface StoredPlan {
@@ -21,30 +21,29 @@ interface StoredPlan {
 
 const History = () => {
   const navigate = useNavigate();
-  const [password, setPassword] = useState("");
-  const [authenticated, setAuthenticated] = useState(false);
+  const { user } = useAuth();
+  const [checking, setChecking] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
   const [plans, setPlans] = useState<StoredPlan[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<StoredPlan | null>(null);
 
-  const handleAuth = async () => {
-    try {
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
       const { data } = await supabase
-        .from("company_config")
-        .select("settings_password")
-        .limit(1)
-        .single();
-
-      if (data && password === data.settings_password) {
-        setAuthenticated(true);
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (data) {
+        setAuthorized(true);
         fetchPlans();
-      } else {
-        toast.error("Incorrect password");
       }
-    } catch {
-      toast.error("Failed to verify password");
-    }
-  };
+      setChecking(false);
+    })();
+  }, [user]);
 
   const fetchPlans = async () => {
     setLoading(true);
@@ -110,7 +109,9 @@ const History = () => {
       </nav>
 
       <main className="px-4 py-10 max-w-4xl mx-auto">
-        {!authenticated ? (
+        {checking ? (
+          <p className="text-muted-foreground text-center">Checking access...</p>
+        ) : !authorized ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -120,20 +121,9 @@ const History = () => {
               <Lock className="w-8 h-8 text-primary" />
             </div>
             <h1 className="text-2xl font-display font-bold mb-2">Plan History</h1>
-            <p className="text-muted-foreground mb-6">Enter admin password to view generated plans</p>
-            <div className="flex gap-2">
-              <Input
-                type="password"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAuth()}
-                className="bg-card text-foreground"
-              />
-              <Button onClick={handleAuth} className="gradient-lime text-primary-foreground font-semibold">
-                Unlock
-              </Button>
-            </div>
+            <p className="text-muted-foreground mb-6">
+              This area is restricted to admins. Ask an administrator to grant you access.
+            </p>
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>

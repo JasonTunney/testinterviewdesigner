@@ -1,10 +1,13 @@
-project_id = "mnqlbzxukxmjamabsktc"
+project_id = "tmoljmxeflnoodqagfuc"
 
 [functions.design-interview]
-verify_jwt = false
+verify_jwt = true
+
+[functions.parse-document]
+verify_jwt = true
 
 [functions.settings]
-verify_jwt = false
+verify_jwt = true
 
 [functions.washup-summary]
-verify_jwt = false
+verify_jwt = true

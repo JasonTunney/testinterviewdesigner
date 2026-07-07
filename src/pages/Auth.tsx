@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -47,15 +46,6 @@ const Auth = () => {
     }
   };
 
-  const handleGoogle = async () => {
-    setBusy(true);
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (result.error) {
-      toast.error("Google sign-in failed");
-      setBusy(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -75,13 +65,6 @@ const Auth = () => {
           <Button onClick={handleEmail} disabled={busy || !email || !password}
             className="w-full gradient-lime text-primary-foreground font-semibold">
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : (mode === "signin" ? "Sign in" : "Sign up")}
-          </Button>
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-            <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">or</span></div>
-          </div>
-          <Button onClick={handleGoogle} variant="outline" className="w-full" disabled={busy}>
-            Continue with Google
           </Button>
           <button onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
             className="w-full text-muted-foreground hover:text-foreground text-sm pt-2">

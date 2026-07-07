@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Secrets — never commit
+.supabase-db-password.txt
+supabase/.temp
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

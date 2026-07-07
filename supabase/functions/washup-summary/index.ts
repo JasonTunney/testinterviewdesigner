@@ -5,11 +5,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Swap to "claude-sonnet-5" for lower cost; "claude-opus-4-8" for maximum quality.
+const MODEL = "claude-opus-4-8";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const { session_id } = await req.json();
     if (!session_id) return new Response(JSON.stringify({ error: "session_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
@@ -21,46 +27,47 @@ Deno.serve(async (req) => {
     const plan = session.candidates.interview_plans.plan_data;
     const jd = session.candidates.interview_plans.job_description ?? "";
 
-    const prompt = `Job description:\n${jd}\n\nInterview plan stages:\n${JSON.stringify(plan.stages?.map((s: any) => ({ name: s.name, focus: s.focus, questions: s.questions })) ?? [])}\n\nPanelist notes & scores:\n${JSON.stringify(notes ?? [])}\n\nBlind hire scores (1-5): ${(blindScores ?? []).map((b: any) => b.score).join(", ")}\n\nProduce a wash-up summary.`;
+    const prompt = `Job description:\n${jd}\n\nInterview plan stages:\n${JSON.stringify(plan.stages?.map((s: any) => ({ name: s.name, focus: s.focus, questions: s.questions })) ?? [])}\n\nPanelist notes & scores:\n${JSON.stringify(notes ?? [])}\n\nBlind hire scores (1-5): ${(blindScores ?? []).map((b: any) => b.score).join(", ")}\n\nProduce a wash-up summary by calling the submit_summary tool.`;
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const summaryTool = {
+      name: "submit_summary",
+      description: "Return the wash-up summary surfacing themes, JD gaps, and discussion points.",
+      input_schema: {
+        type: "object",
+        properties: {
+          themes: { type: "array", items: { type: "string" } },
+          gaps: { type: "array", items: { type: "string" } },
+          discussion_points: { type: "array", items: { type: "string" } },
+        },
+        required: ["themes", "gaps", "discussion_points"],
+      },
+    };
+
+    const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`, "Content-Type": "application/json" },
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: "You analyse interview wash-up data and surface themes, JD gaps, and discussion points." },
-          { role: "user", content: prompt },
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "summary",
-            description: "Return wash-up summary",
-            parameters: {
-              type: "object",
-              properties: {
-                themes: { type: "array", items: { type: "string" } },
-                gaps: { type: "array", items: { type: "string" } },
-                discussion_points: { type: "array", items: { type: "string" } },
-              },
-              required: ["themes", "gaps", "discussion_points"],
-              additionalProperties: false,
-            },
-          },
-        }],
-        tool_choice: { type: "function", function: { name: "summary" } },
+        model: MODEL,
+        max_tokens: 4000,
+        system: "You analyse interview wash-up data and surface themes, JD gaps, and discussion points.",
+        tools: [summaryTool],
+        tool_choice: { type: "tool", name: "submit_summary" },
+        messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!aiResp.ok) {
       const txt = await aiResp.text();
-      console.error("AI error", aiResp.status, txt);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("Anthropic API error", aiResp.status, txt);
+      return new Response(JSON.stringify({ error: "AI request failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const aiJson = await aiResp.json();
-    const args = aiJson.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-    const summary = args ? JSON.parse(args) : { themes: [], gaps: [], discussion_points: [] };
+    const toolUse = (aiJson.content || []).find((b: any) => b.type === "tool_use");
+    const summary = toolUse?.input ?? { themes: [], gaps: [], discussion_points: [] };
 
     await supabase.from("washup_sessions").update({ ai_summary: summary }).eq("id", session_id);
 
