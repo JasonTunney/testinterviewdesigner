@@ -29,6 +29,11 @@ const planTool = {
             description: { type: "string" },
             duration: { type: "string", description: "e.g. 30 minutes" },
             rationale: { type: "string" },
+            competencies: {
+              type: "array",
+              description: "The key competencies this stage assesses (e.g. 'Stakeholder management', 'SQL proficiency').",
+              items: { type: "string" },
+            },
             panelists: {
               type: "array",
               description: "People recommended for this stage's panel. Only real people from AVAILABLE PANELISTS may appear here. Empty array if no suitable person exists.",
@@ -67,7 +72,7 @@ const planTool = {
               },
             },
           },
-          required: ["id", "name", "description", "duration", "rationale", "panelists", "questions"],
+          required: ["id", "name", "description", "duration", "rationale", "competencies", "panelists", "questions"],
         },
       },
     },
@@ -146,6 +151,8 @@ ${stageConstraints}
 ${config?.competency_framework ? `\nEnsure questions assess these competencies where relevant: ${config.competency_framework}` : ""}
 
 Panelist recommendations must follow the PANELIST RULES above exactly — only real people from the directory, never invented people or roles.
+
+For each stage, list the key competencies it assesses in the "competencies" array, and make sure the questions and recommended panelists directly target those competencies.
 
 For each question, provide a full 1-5 scoring rubric (score 1 through 5, each with a label and a description of what that answer looks like). Be specific to the role described.`;
 

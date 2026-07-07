@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { InterviewStage } from "@/types/interview";
-import { ChevronDown, ChevronUp, Clock, Users, Pencil, Check, X, MessageSquare, Trash2, Plus } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Users, Pencil, Check, X, MessageSquare, Trash2, Plus, Target, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const MAX_PANELISTS = 3;
 type Person = { id: string; name: string; role_title: string | null };
@@ -21,14 +22,52 @@ interface StageCardProps {
   onDelete?: () => void;
   canDelete?: boolean;
   readOnly?: boolean;
+  planId?: string;
 }
 
-const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, canDelete = true, readOnly = false }: StageCardProps) => {
+const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, canDelete = true, readOnly = false, planId }: StageCardProps) => {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<InterviewStage>(stage);
   const [people, setPeople] = useState<Person[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [compInput, setCompInput] = useState("");
+  const [refining, setRefining] = useState(false);
+
+  const addCompetency = () => {
+    const c = compInput.trim();
+    if (!c) return;
+    const list = editData.competencies ?? [];
+    if (!list.some((x) => x.toLowerCase() === c.toLowerCase())) {
+      setEditData({ ...editData, competencies: [...list, c] });
+    }
+    setCompInput("");
+  };
+
+  const removeCompetency = (i: number) => {
+    const list = [...(editData.competencies ?? [])];
+    list.splice(i, 1);
+    setEditData({ ...editData, competencies: list });
+  };
+
+  const refine = async () => {
+    if (!planId) { toast.error("Refine isn't available here."); return; }
+    setRefining(true);
+    const { data, error } = await supabase.functions.invoke("refine-stage", {
+      body: { planId, stage: { name: editData.name, description: editData.description, competencies: editData.competencies ?? [] } },
+    });
+    setRefining(false);
+    if (error || (data && data.error)) {
+      toast.error((data && data.error) || error?.message || "Refine failed");
+      return;
+    }
+    setEditData({
+      ...editData,
+      panelists: Array.isArray(data.panelists) ? data.panelists : editData.panelists,
+      questions: Array.isArray(data.questions) ? data.questions : editData.questions,
+    });
+    toast.success("Stage refined to match the competencies — review, then save with ✓.");
+  };
 
   useEffect(() => {
     if (!editing || people.length) return;
@@ -150,6 +189,57 @@ const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, c
           <p className="text-muted-foreground text-sm italic">💡 {stage.rationale}</p>
         )}
       </div>
+
+      {/* Competencies assessed */}
+      {(editing || (stage.competencies && stage.competencies.length > 0)) && (
+        <div className="px-5 pb-3">
+          <div className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
+            <Target className="w-3.5 h-3.5 text-primary" /> Competencies assessed
+          </div>
+          {editing ? (
+            <>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {(editData.competencies ?? []).length === 0 && (
+                  <span className="text-muted-foreground text-xs">No competencies yet — add the ones this stage should assess.</span>
+                )}
+                {(editData.competencies ?? []).map((c, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-secondary text-foreground text-xs">
+                    {c}
+                    <button onClick={() => removeCompetency(i)} className="text-muted-foreground hover:text-destructive">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Input
+                  value={compInput}
+                  onChange={(e) => setCompInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCompetency(); } }}
+                  placeholder="Add a competency…"
+                  className="h-9 text-sm flex-1 min-w-[160px] bg-background/50"
+                />
+                <Button size="sm" variant="outline" onClick={addCompetency} className="h-9">
+                  <Plus className="w-4 h-4 mr-1" /> Add
+                </Button>
+                <Button size="sm" onClick={refine} disabled={refining} className="h-9 gradient-lime text-primary-foreground">
+                  {refining ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+                  {refining ? "Refining…" : "Refine with AI"}
+                </Button>
+              </div>
+              <p className="text-muted-foreground text-[11px] mt-1.5">
+                Edit the competencies, then <span className="text-foreground">Refine with AI</span> to regenerate this stage's questions and panel to match. Review the result, then save with ✓.
+              </p>
+            </>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {stage.competencies!.map((c, i) => (
+                <span key={i} className="px-2 py-1 rounded bg-secondary text-foreground text-xs">{c}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Expanded content */}
       <AnimatePresence>

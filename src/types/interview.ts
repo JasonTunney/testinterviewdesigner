@@ -3,6 +3,7 @@ export interface InterviewStage {
   name: string;
   description: string;
   duration: string;
+  competencies?: string[];
   panelists: Panelist[];
   questions: InterviewQuestion[];
   rationale: string;

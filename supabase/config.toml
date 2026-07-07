@@ -12,6 +12,9 @@ verify_jwt = true
 [functions.parse-document]
 verify_jwt = true
 
+[functions.refine-stage]
+verify_jwt = true
+
 [functions.settings]
 verify_jwt = true
 
