@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { InterviewStage } from "@/types/interview";
-import { ChevronDown, ChevronUp, Clock, Users, Pencil, Check, X, MessageSquare, Trash2, Plus, Target, Sparkles, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Users, Pencil, Check, X, MessageSquare, Trash2, Plus, Target, Sparkles, Loader2, Presentation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +33,24 @@ const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, c
   const [pickerOpen, setPickerOpen] = useState(false);
   const [compInput, setCompInput] = useState("");
   const [refining, setRefining] = useState(false);
+  const [presInput, setPresInput] = useState("");
+
+  const addAssessing = () => {
+    const v = presInput.trim();
+    if (!v || !editData.presentation) return;
+    const list = editData.presentation.assessing ?? [];
+    if (!list.some((x) => x.toLowerCase() === v.toLowerCase())) {
+      setEditData({ ...editData, presentation: { ...editData.presentation, assessing: [...list, v] } });
+    }
+    setPresInput("");
+  };
+
+  const removeAssessing = (i: number) => {
+    if (!editData.presentation) return;
+    const list = [...(editData.presentation.assessing ?? [])];
+    list.splice(i, 1);
+    setEditData({ ...editData, presentation: { ...editData.presentation, assessing: list } });
+  };
 
   const addCompetency = () => {
     const c = compInput.trim();
@@ -236,6 +254,82 @@ const StageCard = ({ stage, index, colorClass, bgColorClass, onEdit, onDelete, c
               {stage.competencies!.map((c, i) => (
                 <span key={i} className="px-2 py-1 rounded bg-secondary text-foreground text-xs">{c}</span>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Presentation brief */}
+      {(editing || stage.presentation) && (
+        <div className="px-5 pb-3">
+          <div className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
+            <Presentation className="w-3.5 h-3.5 text-primary" /> Presentation brief
+          </div>
+          {editing ? (
+            editData.presentation ? (
+              <div className="space-y-2">
+                <Textarea
+                  value={editData.presentation.brief}
+                  onChange={(e) => setEditData({ ...editData, presentation: { ...editData.presentation!, brief: e.target.value } })}
+                  placeholder="The core question or task the candidate is asked to present on…"
+                  className="bg-background/50 text-sm"
+                />
+                <Input
+                  value={editData.presentation.format ?? ""}
+                  onChange={(e) => setEditData({ ...editData, presentation: { ...editData.presentation!, format: e.target.value } })}
+                  placeholder="Format, e.g. 15 min presentation + 10 min Q&A"
+                  className="h-9 text-sm bg-background/50"
+                />
+                <div>
+                  <div className="text-[11px] text-muted-foreground mb-1">Assessing for</div>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {(editData.presentation.assessing ?? []).map((a, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-secondary text-foreground text-xs">
+                        {a}
+                        <button onClick={() => removeAssessing(i)} className="text-muted-foreground hover:text-destructive">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Input
+                      value={presInput}
+                      onChange={(e) => setPresInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addAssessing(); } }}
+                      placeholder="Add what it assesses for…"
+                      className="h-9 text-sm flex-1 min-w-[160px] bg-background/50"
+                    />
+                    <Button size="sm" variant="outline" onClick={addAssessing} className="h-9">
+                      <Plus className="w-4 h-4 mr-1" /> Add
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditData({ ...editData, presentation: undefined })} className="h-9 text-muted-foreground hover:text-destructive">
+                      Remove brief
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => setEditData({ ...editData, presentation: { brief: "", assessing: [] } })}>
+                <Plus className="w-4 h-4 mr-1" /> Add presentation brief
+              </Button>
+            )
+          ) : (
+            <div className="bg-background/30 rounded-lg p-3">
+              <p className="text-foreground text-sm">{stage.presentation!.brief}</p>
+              {stage.presentation!.format && (
+                <p className="text-muted-foreground text-xs mt-1">{stage.presentation!.format}</p>
+              )}
+              {(stage.presentation!.assessing ?? []).length > 0 && (
+                <div className="mt-2">
+                  <div className="text-[11px] text-muted-foreground mb-1">Assessing for</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {stage.presentation!.assessing.map((a, i) => (
+                      <span key={i} className="px-2 py-1 rounded bg-secondary text-foreground text-xs">{a}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

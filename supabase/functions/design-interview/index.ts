@@ -34,6 +34,16 @@ const planTool = {
               description: "The key competencies this stage assesses (e.g. 'Stakeholder management', 'SQL proficiency').",
               items: { type: "string" },
             },
+            presentation: {
+              type: "object",
+              description: "ONLY include on a presentation stage. The briefing given to the candidate.",
+              properties: {
+                brief: { type: "string", description: "The core question or task the candidate is asked to prepare and present." },
+                assessing: { type: "array", items: { type: "string" }, description: "What this presentation assesses for." },
+                format: { type: "string", description: "Timing/format, e.g. '15 min presentation + 10 min Q&A'." },
+              },
+              required: ["brief", "assessing"],
+            },
             panelists: {
               type: "array",
               description: "People recommended for this stage's panel. Only real people from AVAILABLE PANELISTS may appear here. Empty array if no suitable person exists.",
@@ -84,7 +94,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { jobDescription, isInterimRole, jobTitle } = await req.json();
+    const { jobDescription, isInterimRole, jobTitle, includesPresentation } = await req.json();
     const roleTitle = (jobTitle ?? "").trim();
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
@@ -169,6 +179,13 @@ ${config?.competency_framework ? `\nEnsure questions assess these competencies w
 Panelist recommendations must follow the PANELIST RULES above exactly — only real people from the directory, never invented people or roles.
 
 For each stage, list the key competencies it assesses in the "competencies" array, and make sure the questions and recommended panelists directly target those competencies.
+${includesPresentation ? `
+PRESENTATION STAGE (required):
+This process MUST include exactly one presentation stage, where the candidate prepares and delivers a presentation. For that stage only, populate the "presentation" object with:
+- "brief": the core question or task the candidate is given to prepare (specific and relevant to this role and to the job description — one clear, well-scoped ask).
+- "assessing": what the presentation is assessing for (the specific capabilities the panel should judge).
+- "format": a sensible timing/format, e.g. "15 minute presentation + 10 minutes Q&A".
+Still give this stage its questions (the probing/Q&A questions the panel asks after the presentation) with full 1-5 rubrics, plus its competencies and panelists like any other stage. Do NOT add a presentation object to any other stage.` : ""}
 
 For each question, provide a full 1-5 scoring rubric (score 1 through 5, each with a label and a description of what that answer looks like). Be specific to the role described.`;
 

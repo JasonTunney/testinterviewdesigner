@@ -14,11 +14,13 @@ interface JobDescriptionUploadProps {
   isLoading: boolean;
   isInterimRole: boolean;
   onToggleInterim: (value: boolean) => void;
+  includesPresentation: boolean;
+  onTogglePresentation: (value: boolean) => void;
 }
 
 const SUPPORTED_TEXT_TYPES = ["text/plain"];
 
-const JobDescriptionUpload = ({ onSubmit, isLoading, isInterimRole, onToggleInterim }: JobDescriptionUploadProps) => {
+const JobDescriptionUpload = ({ onSubmit, isLoading, isInterimRole, onToggleInterim, includesPresentation, onTogglePresentation }: JobDescriptionUploadProps) => {
   const [jobDescription, setJobDescription] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [requisitionId, setRequisitionId] = useState("");
@@ -172,6 +174,23 @@ const JobDescriptionUpload = ({ onSubmit, isLoading, isInterimRole, onToggleInte
         />
         <Label htmlFor="interim-toggle" className="text-foreground text-sm cursor-pointer">
           Interim / Internal role <span className="text-muted-foreground">(single-stage process)</span>
+        </Label>
+      </motion.div>
+
+      {/* Presentation toggle */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.27 }}
+        className="mt-3 flex items-center justify-center gap-3 p-4 rounded-xl bg-secondary/50 border border-border"
+      >
+        <Switch
+          id="presentation-toggle"
+          checked={includesPresentation}
+          onCheckedChange={onTogglePresentation}
+        />
+        <Label htmlFor="presentation-toggle" className="text-foreground text-sm cursor-pointer">
+          Include a presentation <span className="text-muted-foreground">(adds a briefed presentation stage)</span>
         </Label>
       </motion.div>
 

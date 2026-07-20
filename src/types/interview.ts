@@ -1,9 +1,19 @@
+export interface PresentationBrief {
+  /** The core question or task the candidate is asked to present on. */
+  brief: string;
+  /** What the presentation is assessing for. */
+  assessing: string[];
+  /** Optional timing/format, e.g. "15 min presentation + 10 min Q&A". */
+  format?: string;
+}
+
 export interface InterviewStage {
   id: string;
   name: string;
   description: string;
   duration: string;
   competencies?: string[];
+  presentation?: PresentationBrief;
   panelists: Panelist[];
   questions: InterviewQuestion[];
   rationale: string;

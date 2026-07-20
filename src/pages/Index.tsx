@@ -14,6 +14,7 @@ const Index = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isInterimRole, setIsInterimRole] = useState(false);
+  const [includesPresentation, setIncludesPresentation] = useState(false);
 
   const handleSubmit = useCallback(async (jobDescription: string, jobTitle: string, requisitionId: string) => {
     setIsLoading(true);
@@ -24,7 +25,7 @@ const Index = () => {
       if (existing) throw new Error(`Requisition ${requisitionId} already exists.`);
 
       const { data, error } = await supabase.functions.invoke("design-interview", {
-        body: { jobDescription, isInterimRole, jobTitle },
+        body: { jobDescription, isInterimRole, jobTitle, includesPresentation },
       });
 
       if (error) throw error;
@@ -59,7 +60,7 @@ const Index = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isInterimRole, navigate, user]);
+  }, [isInterimRole, includesPresentation, navigate, user]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,7 +91,14 @@ const Index = () => {
 
       <main className="px-4 py-10 md:py-16">
         <motion.div key="upload" exit={{ opacity: 0, y: -20 }}>
-          <JobDescriptionUpload onSubmit={handleSubmit} isLoading={isLoading} isInterimRole={isInterimRole} onToggleInterim={setIsInterimRole} />
+          <JobDescriptionUpload
+            onSubmit={handleSubmit}
+            isLoading={isLoading}
+            isInterimRole={isInterimRole}
+            onToggleInterim={setIsInterimRole}
+            includesPresentation={includesPresentation}
+            onTogglePresentation={setIncludesPresentation}
+          />
         </motion.div>
       </main>
     </div>

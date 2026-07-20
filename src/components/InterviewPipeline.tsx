@@ -2,13 +2,14 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { InterviewPlan, InterviewStage } from "@/types/interview";
 import StageCard from "./StageCard";
-import { ArrowDown, GripVertical } from "lucide-react";
+import { ArrowDown, GripVertical, Plus } from "lucide-react";
 
 interface InterviewPipelineProps {
   plan: InterviewPlan;
   onEditStage: (stageId: string, stage: InterviewStage) => void;
   onDeleteStage: (stageId: string) => void;
   onReorder?: (stages: InterviewStage[]) => void;
+  onAddStage?: () => void;
   readOnly?: boolean;
   planId?: string;
 }
@@ -29,7 +30,7 @@ const stageBgColors = [
   "bg-stage-5",
 ];
 
-const InterviewPipeline = ({ plan, onEditStage, onDeleteStage, onReorder, readOnly = false, planId }: InterviewPipelineProps) => {
+const InterviewPipeline = ({ plan, onEditStage, onDeleteStage, onReorder, onAddStage, readOnly = false, planId }: InterviewPipelineProps) => {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const reorderable = !readOnly && !!onReorder;
@@ -120,6 +121,17 @@ const InterviewPipeline = ({ plan, onEditStage, onDeleteStage, onReorder, readOn
           </div>
         ))}
       </div>
+
+      {!readOnly && onAddStage && (
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={onAddStage}
+            className="w-full max-w-md flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-primary/50 hover:text-foreground transition"
+          >
+            <Plus className="w-4 h-4" /> Add stage
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -118,6 +118,25 @@ const Plan = () => {
     toast.success("Stage updated & saved");
   }, [plan, status, savePlan]);
 
+  const handleAddStage = useCallback(() => {
+    if (!plan || status === "submitted") return;
+    // Unique id so notes/assignments stay attached to the right stage.
+    const newStage: InterviewStage = {
+      id: `stage-${Date.now()}`,
+      name: "New stage",
+      description: "",
+      duration: "45 minutes",
+      rationale: "",
+      competencies: [],
+      panelists: [],
+      questions: [],
+    };
+    const updatedPlan = { ...plan, stages: [...plan.stages, newStage] };
+    setPlan(updatedPlan);
+    savePlan(updatedPlan);
+    toast.success("Stage added — open it to set competencies, then Refine with AI.");
+  }, [plan, status, savePlan]);
+
   const handleReorderStages = useCallback((stages: InterviewStage[]) => {
     if (!plan || status === "submitted") return;
     const updatedPlan = { ...plan, stages };
@@ -268,7 +287,7 @@ const Plan = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <InterviewPipeline plan={plan} onEditStage={handleEditStage} onDeleteStage={handleDeleteStage} onReorder={handleReorderStages} readOnly={isSubmitted} planId={id} />
+          <InterviewPipeline plan={plan} onEditStage={handleEditStage} onDeleteStage={handleDeleteStage} onReorder={handleReorderStages} onAddStage={handleAddStage} readOnly={isSubmitted} planId={id} />
         </motion.div>
 
         {req && (
